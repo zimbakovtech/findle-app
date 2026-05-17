@@ -52,18 +52,6 @@ const Dashboard: React.FC = () => {
     setCurrentPage: setBooksCurrentPage,
   };
 
-  useEffect(() => {
-    getCurrentUserInfo();
-  }, [getCurrentUserInfo]);
-
-  useEffect(() => {
-    fetchAuthors();
-  }, [authorsCurrentPage, fetchAuthors]);
-
-  useEffect(() => {
-    fetchBooks();
-  }, [booksCurrentPage, fetchBooks]);
-
   const getCurrentUserInfo = useCallback(async () => {
     const response = await getCurrentUser();
     if (response.data && response.success) {
@@ -121,6 +109,18 @@ const Dashboard: React.FC = () => {
     }
     setIsLoading(false);
   }, [isLoading, booksCurrentPage, pageSize, booksSearchQuery, getBooks]);
+
+  useEffect(() => {
+    getCurrentUserInfo();
+  }, [getCurrentUserInfo]);
+
+  useEffect(() => {
+    fetchAuthors();
+  }, [authorsCurrentPage, fetchAuthors]);
+
+  useEffect(() => {
+    fetchBooks();
+  }, [booksCurrentPage, fetchBooks]);
 
   const changeTabView = (e: TabProps) => {
     setTab(e);

@@ -1,3 +1,5 @@
+from typing import cast
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,15 +33,21 @@ async def get_user(
     user_email: str | None = None,
     username: str | None = None,
 ) -> User | None:
-    return await session.scalar(
-        select(User).where(
-            (User.username == username) | (User.email == user_email)
-        )
+    return cast(
+        User | None,
+        await session.scalar(
+            select(User).where(
+                (User.username == username) | (User.email == user_email)
+            )
+        ),
     )
 
 
 async def get_user_by_id(session: AsyncSession, user_id: int) -> User | None:
-    return await session.scalar(select(User).where(User.id == user_id))
+    return cast(
+        User | None,
+        await session.scalar(select(User).where(User.id == user_id)),
+    )
 
 
 async def get_users_list(

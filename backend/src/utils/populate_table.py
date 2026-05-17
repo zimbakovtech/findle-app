@@ -1,4 +1,5 @@
 import anyio
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from src.core.database import AsyncSessionLocal
@@ -9,27 +10,44 @@ from src.utils import DATA
 
 
 async def populate_authors() -> None:
-    try:  # noqa: PLR1702
+    try:
         async with AsyncSessionLocal() as session:
-            for author, books in DATA.items():
-                author_schema = AuthorSchema(name=author)
-                new_author = Author(**author_schema.model_dump())
-                try:
-                    async with session.begin():
-                        session.add(new_author)
-                except IntegrityError:
-                    pass
+            for author_name, books in DATA.items():
+                schema = AuthorSchema(name=author_name)
 
-                for title, year in books.items():
-                    book_schema = BookSchema(
-                        title=title, year=year, author_id=new_author.id
-                    )
-                    new_book = Book(**book_schema.model_dump())
+                author = await session.scalar(
+                    select(Author).where(Author.name == schema.name)
+                )
+                if author is None:
+                    author = Author(**schema.model_dump())
+                    session.add(author)
                     try:
-                        async with session.begin():
-                            session.add(new_book)
+                        await session.commit()
+                        await session.refresh(author)
                     except IntegrityError:
-                        pass
+                        await session.rollback()
+                        author = await session.scalar(
+                            select(Author).where(Author.name == schema.name)
+                        )
+                        if author is None:
+                            continue
+
+                for title, (year, price) in books.items():
+                    exists = await session.scalar(
+                        select(Book).where(Book.title == BookSchema(
+                            title=title, year=year, author_id=author.id, price=price
+                        ).title)
+                    )
+                    if exists:
+                        continue
+                    book_schema = BookSchema(
+                        title=title, year=year, author_id=author.id, price=price
+                    )
+                    session.add(Book(**book_schema.model_dump()))
+                    try:
+                        await session.commit()
+                    except IntegrityError:
+                        await session.rollback()
     except Exception as e:
         print('It was not possible to populate the database ', e)
 

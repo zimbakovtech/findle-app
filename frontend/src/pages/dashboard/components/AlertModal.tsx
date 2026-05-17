@@ -35,13 +35,13 @@ const AlertModal: React.FC<AlertProps> = ({
         </DialogBody>
         <DialogFooter>
           <DialogActionTrigger asChild>
-            <Button colorPalette="teal">Cancel</Button>
+            <Button variant="ghost" color="gray.600">Cancel</Button>
           </DialogActionTrigger>
-          <Button colorPalette="red" onClick={() => deleteFunction()}>
+          <Button bg="red.500" color="white" _hover={{ bg: "red.600" }} onClick={() => deleteFunction()}>
             Delete
           </Button>
         </DialogFooter>
-        <DialogCloseTrigger color="black" _hover={{ bgColor: "teal.300" }} />
+        <DialogCloseTrigger color="gray.500" _hover={{ bgColor: "indigo.50" }} />
       </DialogContent>
     </DialogRoot>
   );

@@ -1,9 +1,13 @@
-name: Backend Test Suite
+name: Backend CI
 
 on:
   pull_request:
     branches:
       - main
+      - develop
+  push:
+    branches:
+      - develop
 
 jobs:
   test-backend:
@@ -12,19 +16,38 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12"]
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: findle_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{matrix.python-version}}
+          python-version: ${{ matrix.python-version }}
 
       - name: Install Poetry
-        run: curl -sSL https://install.python-poetry.org | python3 - --version 1.7.1
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: false
 
-      - name: Add Poetry to PATH
-        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: poetry-${{ matrix.python-version }}-${{ hashFiles('backend/poetry.lock') }}
 
       - name: Install Dependencies
         run: poetry install
@@ -41,3 +64,11 @@ jobs:
       - name: Execute Unit Tests
         run: poetry run task test
         working-directory: backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:admin@localhost:5432/findle_test_db
+          SECRET_KEY: test-secret-key-for-ci-only
+          ALGORITHM: HS256
+          ACCESS_TOKEN_EXPIRE_MINUTES: 30
+          FIRST_SUPERUSER_USERNAME: admin
+          FIRST_SUPERUSER_EMAIL: admin@test.com
+          FIRST_SUPERUSER_PASSWORD: testpass

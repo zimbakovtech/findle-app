@@ -1,0 +1,11 @@
+services:
+  frontend:
+    image: zimbakovtech/findle-frontend:${IMAGE_TAG:-latest}
+    build:
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+
+  backend:
+    image: zimbakovtech/findle-backend:${IMAGE_TAG:-latest}
+    environment:
+      - SEED_DATA=false

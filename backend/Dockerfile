@@ -10,3 +10,5 @@ RUN poetry config installer.max-workers 10
 RUN poetry install --without dev --no-interaction --no-ansi --no-root
 
 EXPOSE 8000
+
+CMD ["./scripts/init_db.sh"]

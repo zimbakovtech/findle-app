@@ -16,13 +16,19 @@ async def add_book(session: AsyncSession, book: BookSchema) -> Book:
 
 async def get_book_by_id(session: AsyncSession, book_id: int) -> Book | None:
     return await session.scalar(
-        select(Book).options(selectinload(Book.author)).where(Book.id == book_id)
+        select(Book)
+        .options(selectinload(Book.author))
+        .where(Book.id == book_id)
     )
 
 
-async def get_book_by_title(session: AsyncSession, book_title: str) -> Book | None:
+async def get_book_by_title(
+    session: AsyncSession, book_title: str
+) -> Book | None:
     return await session.scalar(
-        select(Book).options(selectinload(Book.author)).where(Book.title == book_title)
+        select(Book)
+        .options(selectinload(Book.author))
+        .where(Book.title == book_title)
     )
 
 
@@ -37,7 +43,9 @@ async def get_books_list(
     count_query = select(func.count(Book.id))
 
     if book_title and book_year:
-        condition = and_(Book.title.contains(book_title), Book.year == book_year)
+        condition = and_(
+            Book.title.contains(book_title), Book.year == book_year
+        )
         query = query.where(condition)
         count_query = count_query.filter(condition)
     elif book_title:
@@ -54,7 +62,9 @@ async def get_books_list(
     return list(books_db.all()), total_count or 0
 
 
-async def get_books_ids_list(session: AsyncSession, book_ids: list[int]) -> list[int]:
+async def get_books_ids_list(
+    session: AsyncSession, book_ids: list[int]
+) -> list[int]:
     books_list = await session.scalars(
         select(Book.id).filter(Book.id.in_(book_ids))
     )
@@ -77,6 +87,8 @@ async def delete_book(session: AsyncSession, book_to_delete: Book) -> None:
     await session.commit()
 
 
-async def delete_books_batch(session: AsyncSession, book_ids: list[int]) -> None:
+async def delete_books_batch(
+    session: AsyncSession, book_ids: list[int]
+) -> None:
     await session.execute(delete(Book).where(Book.id.in_(book_ids)))
     await session.commit()

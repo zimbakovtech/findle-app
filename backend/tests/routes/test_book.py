@@ -37,7 +37,9 @@ async def test_add_book_already_exists(
     )
 
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json() == {'detail': f'{book.title} is already in the catalog.'}
+    assert response.json() == {
+        'detail': f'{book.title} is already in the catalog.'
+    }
 
 
 async def test_add_book_author_id_not_found(

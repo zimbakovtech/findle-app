@@ -42,7 +42,9 @@ async def get_user_by_id(session: AsyncSession, user_id: int) -> User | None:
     return await session.scalar(select(User).where(User.id == user_id))
 
 
-async def get_users_list(session: AsyncSession, limit: int, offset: int) -> list[User]:
+async def get_users_list(
+    session: AsyncSession, limit: int, offset: int
+) -> list[User]:
     users_db = await session.scalars(select(User).offset(offset).limit(limit))
     return list(users_db.all())
 

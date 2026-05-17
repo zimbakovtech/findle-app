@@ -13,12 +13,18 @@ async def add_author(session: AsyncSession, author: AuthorSchema) -> Author:
     return new_author
 
 
-async def get_author_by_id(session: AsyncSession, author_id: int) -> Author | None:
+async def get_author_by_id(
+    session: AsyncSession, author_id: int
+) -> Author | None:
     return await session.scalar(select(Author).where(Author.id == author_id))
 
 
-async def get_author_by_name(session: AsyncSession, author_name: str) -> Author | None:
-    return await session.scalar(select(Author).where(Author.name == author_name))
+async def get_author_by_name(
+    session: AsyncSession, author_name: str
+) -> Author | None:
+    return await session.scalar(
+        select(Author).where(Author.name == author_name)
+    )
 
 
 async def get_filtered_authors_list(
@@ -43,7 +49,9 @@ async def get_filtered_authors_list(
     return list(authors_db.all()), total_count or 0
 
 
-async def get_authors_ids_list(session: AsyncSession, author_ids: list[int]) -> list[int]:
+async def get_authors_ids_list(
+    session: AsyncSession, author_ids: list[int]
+) -> list[int]:
     authors_list = await session.scalars(
         select(Author.id).filter(Author.id.in_(author_ids))
     )
@@ -61,11 +69,15 @@ async def update_author_info(
     return author_to_update
 
 
-async def delete_author(session: AsyncSession, author_to_delete: Author) -> None:
+async def delete_author(
+    session: AsyncSession, author_to_delete: Author
+) -> None:
     await session.delete(author_to_delete)
     await session.commit()
 
 
-async def delete_authors_batch(session: AsyncSession, author_ids: list[int]) -> None:
+async def delete_authors_batch(
+    session: AsyncSession, author_ids: list[int]
+) -> None:
     await session.execute(delete(Author).where(Author.id.in_(author_ids)))
     await session.commit()

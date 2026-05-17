@@ -1,0 +1,54 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_APP_BACKEND_ADDRESS=${VITE_API_URL}
+    container_name: frontend
+    restart: always
+    ports:
+      - 3000:3000
+    networks:
+      - network
+    env_file:
+      - ./frontend/.env
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    entrypoint: ./scripts/init_db.sh
+    ports:
+      - 8000:8000
+    networks:
+      - network
+    depends_on:
+      - postgres
+    env_file:
+      - ./backend/.env
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    networks:
+      - network
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: findle_db
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    env_file:
+      - ./backend/.env
+
+networks:
+  network:
+    driver: bridge
+
+volumes:
+  postgres_data:

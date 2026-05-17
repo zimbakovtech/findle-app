@@ -124,7 +124,11 @@ const Dashboard: React.FC = () => {
 
   const changeTabView = (e: TabProps) => {
     setTab(e);
-    e.value === "authors" ? fetchAuthors() : fetchBooks();
+    if (e.value === "authors") {
+      fetchAuthors();
+    } else {
+      fetchBooks();
+    }
   };
 
   return (

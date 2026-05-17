@@ -85,7 +85,7 @@ findle-app/
 
 ```bash
 # 1. Clone
-git clone <repo-url>
+git clone https://github.com/zimbakovtech/findle-app
 cd findle-app
 
 # 2. Copy env files

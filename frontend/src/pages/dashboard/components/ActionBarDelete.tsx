@@ -15,7 +15,7 @@ const ActionBarDelete = ({
 }: ActionBarDeleteProps) => {
   return (
     <ActionBarRoot open={hasSelection}>
-      <ActionBarContent bg="teal.50" borderWidth="1px">
+      <ActionBarContent bg="white" borderWidth="1px" borderColor="indigo.100" borderRadius="xl" shadow="lg">
         <ActionBarSelectionTrigger>
           {ids.length} selected
         </ActionBarSelectionTrigger>

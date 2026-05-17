@@ -9,6 +9,7 @@ class BookSchema(BaseModel):
     title: str
     year: int = Field(gt=0)
     author_id: int = Field(gt=0)
+    price: float | None = Field(default=None, ge=0)
 
     @field_validator('title')
     def validate_name(cls, v: str) -> str:
@@ -28,6 +29,7 @@ class BookPublic(BaseModel):
     id: int
     title: str
     year: int
+    price: float | None = None
     author: str
 
 
@@ -37,6 +39,7 @@ class BookResponseCreate(BookPublic):
 
 class BookUpdate(BaseModel):
     year: int = Field(gt=0)
+    price: float | None = Field(default=None, ge=0)
 
     @field_validator('year')
     @classmethod

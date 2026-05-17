@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Text, Box, Flex, Container, Center } from "@chakra-ui/react";
+import { Text, Box, Flex, Container, Center, Badge } from "@chakra-ui/react";
 import { Tabs } from "@chakra-ui/react";
-import { LuUser } from "react-icons/lu";
-import { IoBookSharp } from "react-icons/io5";
-import { FaUserAlt } from "react-icons/fa";
+import { LuUsers, LuBookOpen, LuUser } from "react-icons/lu";
 import { Toaster, toaster } from "@/components/ui/toaster";
 
 import Header from "@/components/Header";
@@ -35,7 +33,7 @@ const Dashboard: React.FC = () => {
   const [booksSearchQuery, setBooksSearchQuery] = useState("");
   const [booksCurrentPage, setBooksCurrentPage] = useState<number>(1);
 
-  const [tab, setTab] = useState<TabProps>({ value: "authors" });
+  const [tab, setTab] = useState<TabProps>({ value: "books" });
   const [isLoading, setIsLoading] = useState(false);
   const pageSize = 20;
 
@@ -89,8 +87,7 @@ const Dashboard: React.FC = () => {
     });
     if (response.data && response.success) {
       setAuthors(response.data.authors);
-      const responsetTotalResults = response.data.total_results;
-      setAuthorsTotalResults(responsetTotalResults);
+      setAuthorsTotalResults(response.data.total_results);
     } else {
       toaster.create({
         title: response.error.detail,
@@ -98,7 +95,6 @@ const Dashboard: React.FC = () => {
       });
       setAuthors([]);
     }
-
     setIsLoading(false);
   };
 
@@ -114,8 +110,7 @@ const Dashboard: React.FC = () => {
     });
     if (response.data && response.success) {
       setBooks(response.data.books);
-      const responsetTotalResults = response.data.total_results;
-      setBooksTotalResults(responsetTotalResults);
+      setBooksTotalResults(response.data.total_results);
     } else {
       toaster.create({
         title: response.error.detail,
@@ -123,7 +118,6 @@ const Dashboard: React.FC = () => {
       });
       setBooks([]);
     }
-
     setIsLoading(false);
   };
 
@@ -135,65 +129,133 @@ const Dashboard: React.FC = () => {
   return (
     <>
       <Header />
-
-      <Flex direction="column" justifyContent="space-between" minHeight="100vh">
-        <Container maxW="1000px">
-          <Flex mt={1} align="center">
-            <FaUserAlt size={20} style={{ marginRight: "8px" }} />
+      <Flex direction="column" justifyContent="space-between" minHeight="calc(100dvh - 60px)">
+        <Container maxW="1200px" py={6}>
+          {/* User info bar */}
+          <Flex
+            align="center"
+            gap={3}
+            mb={6}
+            bg="white"
+            border="1px solid"
+            borderColor="indigo.100"
+            borderRadius="xl"
+            px={4}
+            py={3}
+          >
+            <Box
+              w={9}
+              h={9}
+              bg="indigo.100"
+              borderRadius="full"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              color="indigo.600"
+              flexShrink={0}
+            >
+              <LuUser size={16} />
+            </Box>
             {currentUser ? (
-              <>
-                <Text fontSize="lg" alignItems="center">
-                  {currentUser.username} ({currentUser.email})
+              <Flex align="center" gap={2} flexWrap="wrap">
+                <Text fontWeight="600" color="indigo.900" fontSize="sm">
+                  {currentUser.username}
                 </Text>
-              </>
+                <Text color="gray.400" fontSize="xs">
+                  {currentUser.email}
+                </Text>
+                {currentUser.is_superuser && (
+                  <Badge
+                    bg="indigo.100"
+                    color="indigo.700"
+                    fontSize="xs"
+                    borderRadius="full"
+                    px={2}
+                  >
+                    Admin
+                  </Badge>
+                )}
+              </Flex>
             ) : (
-              <Text></Text>
+              <Text fontSize="sm" color="gray.400">
+                Loading...
+              </Text>
             )}
           </Flex>
-          <Box mt={8}>
-            <Flex borderBottom="1px solid black" mb={3} justify="space-between">
-              <Text fontWeight="semibold" fontSize="40px" mb={0}>
-                Dashboard Area
-              </Text>
+
+          {/* Dashboard header + tabs */}
+          <Box>
+            <Flex
+              align={{ base: "flex-start", sm: "center" }}
+              justify="space-between"
+              mb={6}
+              direction={{ base: "column", sm: "row" }}
+              gap={3}
+            >
+              <Box>
+                <Text
+                  fontWeight="800"
+                  fontSize="2xl"
+                  color="indigo.900"
+                  letterSpacing="-0.02em"
+                >
+                  Dashboard
+                </Text>
+                <Text fontSize="sm" color="gray.500">
+                  Manage your book catalog and authors
+                </Text>
+              </Box>
 
               <Tabs.Root
-                defaultValue="authors"
+                value={tab.value}
                 onValueChange={(e) => changeTabView(e)}
               >
                 <Tabs.List
-                  display="flex"
-                  alignItems="flex-end"
-                  borderBottom="0px"
-                  height="100%"
+                  bg="indigo.50"
+                  borderRadius="xl"
+                  p={1}
+                  border="none"
                 >
                   <Tabs.Trigger
-                    value="authors"
+                    value="books"
+                    borderRadius="lg"
+                    fontWeight="500"
+                    color="gray.500"
                     _selected={{
-                      color: "black",
-                      fontWeight: "bold",
-                      borderBottom: "3px solid teal",
+                      color: "indigo.700",
+                      bg: "white",
+                      fontWeight: "600",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                     }}
+                    px={4}
+                    py={2}
                   >
-                    <LuUser />
-                    Authors
+                    <LuBookOpen size={14} />
+                    Books
                   </Tabs.Trigger>
                   <Tabs.Trigger
-                    value="books"
+                    value="authors"
+                    borderRadius="lg"
+                    fontWeight="500"
+                    color="gray.500"
                     _selected={{
-                      color: "black",
-                      fontWeight: "bold",
-                      borderBottom: "3px solid teal",
+                      color: "indigo.700",
+                      bg: "white",
+                      fontWeight: "600",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                     }}
+                    px={4}
+                    py={2}
                   >
-                    <IoBookSharp />
-                    Books
+                    <LuUsers size={14} />
+                    Authors
                   </Tabs.Trigger>
                 </Tabs.List>
               </Tabs.Root>
             </Flex>
 
             {tab.value === "authors" ? (
-              <Flex direction="column" gap={3}>
+              <Flex direction="column" gap={4}>
                 <AuthorsTable
                   searchQuery={authorsSearchQuery}
                   setSearchQuery={setAuthorsSearchQuery}
@@ -203,11 +265,11 @@ const Dashboard: React.FC = () => {
                   fetchAuthors={fetchAuthors}
                 />
                 <Center>
-                  <Pagination {...authorsPageProps}></Pagination>
+                  <Pagination {...authorsPageProps} />
                 </Center>
               </Flex>
             ) : (
-              <Flex direction="column" gap={3}>
+              <Flex direction="column" gap={4}>
                 <BooksTable
                   searchQuery={booksSearchQuery}
                   setSearchQuery={setBooksSearchQuery}
@@ -217,7 +279,7 @@ const Dashboard: React.FC = () => {
                   fetchBooks={fetchBooks}
                 />
                 <Center>
-                  <Pagination {...booksPageProps}></Pagination>
+                  <Pagination {...booksPageProps} />
                 </Center>
               </Flex>
             )}

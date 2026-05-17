@@ -1,11 +1,10 @@
 #!/bin/bash
-
-poetry run alembic downgrade base
+set -e
 
 poetry run alembic upgrade head
 
 echo "Running create_superuser.py..."
-poetry run python src/utils/create_superuser.py
+PYTHONPATH=/app poetry run python -m src.utils.create_superuser
 
 if [ $? -eq 0 ]; then
     echo "Successfully ran create_superuser.py."
@@ -15,7 +14,7 @@ else
 fi
 
 echo "Running populate_table.py..."
- poetry run python src/utils/populate_table.py
+PYTHONPATH=/app poetry run python -m src.utils.populate_table
 
 if [ $? -eq 0 ]; then
     echo "Successfully ran populate_table.py."

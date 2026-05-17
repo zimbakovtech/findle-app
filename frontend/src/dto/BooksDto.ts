@@ -10,6 +10,7 @@ export interface BookResponseDto {
   title: string;
   year: number;
   author: string;
+  price?: number | null;
 }
 
 export interface GetBooksResponseDto {
@@ -21,6 +22,7 @@ export interface PostBodyCreateBookDto {
   title: string;
   year: number;
   author_id: number;
+  price?: number | null;
 }
 
 export interface DeleteBooksBodyBatchDto {

@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { GrAdd } from "react-icons/gr";
-import { LuSearch } from "react-icons/lu";
+import { LuSearch, LuPlus, LuBookOpen, LuUser, LuCalendar, LuTag } from "react-icons/lu";
 import {
   createListCollection,
   Flex,
   Input,
   ListCollection,
   Stack,
-  Table,
   HStack,
+  SimpleGrid,
+  Box,
+  Text,
+  Badge,
 } from "@chakra-ui/react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -112,19 +114,22 @@ const BooksTable: React.FC<BooksTableProps> = ({
   const handleAddBook = handleSubmit(async (formData) => {
     if (isLoading) return;
     setIsLoading(true);
+    const price = formData.price ? Number(formData.price) : undefined;
     const data: PostBodyCreateBookDto = {
       title: formData.title,
       year: Number(formData.year),
       author_id: Number(formData.authorList),
+      ...(price !== undefined && { price }),
     };
 
     const response = await createBook(data);
     if (response.data && response.success) {
-      reset({ authorList: [], title: "", year: "" });
+      reset({ authorList: [], title: "", year: "", price: "" });
       toaster.create({
-        title: "New book created.",
+        title: "New book added to catalog.",
         type: "success",
       });
+      fetchBooks();
     } else {
       if (Array.isArray(response.error)) {
         response.error.forEach((errorMsg: string) => {
@@ -177,18 +182,22 @@ const BooksTable: React.FC<BooksTableProps> = ({
 
   return (
     <>
-      <Flex gap="4" justify="space-between" mb={2}>
-        <InputGroup flex="1" startElement={<LuSearch />}>
+      {/* Toolbar */}
+      <Flex gap={3} justify="space-between" mb={4} wrap="wrap">
+        <InputGroup flex="1" startElement={<LuSearch size={15} color="#6B7280" />}>
           <Input
-            borderColor="border.emphasized"
-            borderWidth={2}
+            borderColor="indigo.100"
+            borderWidth={1.5}
             focusRing="inside"
-            focusRingColor="teal.focusRing"
+            focusRingColor="indigo.400"
             maxW="400px"
-            placeholder="Search by book name..."
+            placeholder="Search books..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
+            borderRadius="lg"
+            bg="white"
+            fontSize="sm"
           />
         </InputGroup>
 
@@ -199,22 +208,27 @@ const BooksTable: React.FC<BooksTableProps> = ({
         >
           <DialogTrigger asChild>
             <Button
-              height="10"
-              width="30"
-              background="teal.500"
-              marginEnd="auto"
-              borderRadius="md"
-              _hover={{ background: "teal.600" }}
+              bg="indigo.600"
+              color="white"
+              _hover={{ bg: "indigo.700" }}
+              borderRadius="lg"
+              gap={1}
+              fontWeight="500"
+              size="sm"
+              px={4}
             >
-              <GrAdd size={20} color="white" />
+              <LuPlus size={15} />
+              Add Book
             </Button>
           </DialogTrigger>
-          <DialogContent colorPalette="teal" bg="white">
-            <DialogHeader>
-              <DialogTitle>New Book</DialogTitle>
+          <DialogContent bg="white" borderRadius="2xl" borderColor="indigo.100" borderWidth={1}>
+            <DialogHeader borderBottomWidth="1px" borderColor="indigo.50" pb={3}>
+              <DialogTitle color="indigo.900" fontWeight="700">
+                Add New Book
+              </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleAddBook}>
-              <DialogBody pb="4">
+              <DialogBody pb="4" pt={4}>
                 <Stack gap="4">
                   <Field
                     label="Book title"
@@ -222,22 +236,21 @@ const BooksTable: React.FC<BooksTableProps> = ({
                     errorText={errors.title?.message}
                   >
                     <Input
+                      borderColor="indigo.200"
+                      _focus={{ borderColor: "indigo.500" }}
+                      borderRadius="lg"
                       {...register("title", {
-                        required: "Name is required",
+                        required: "Title is required",
                         maxLength: {
-                          value: 50,
-                          message: "Name cannot exceed 50 characters",
+                          value: 500,
+                          message: "Title cannot exceed 500 characters",
                         },
                       })}
                     />
                   </Field>
-                  <HStack
-                    alignItems="start"
-                    justifyContent="space-between"
-                    gap={5}
-                  >
+                  <HStack alignItems="start" gap={4}>
                     <Field
-                      width="50%"
+                      flex={1}
                       label="Year"
                       invalid={!!errors.year}
                       errorText={errors.year?.message}
@@ -250,151 +263,324 @@ const BooksTable: React.FC<BooksTableProps> = ({
                             disabled={field.disabled}
                             name={field.name}
                             value={field.value}
-                            min={0}
+                            min={1}
                             max={new Date().getFullYear()}
                             onValueChange={({ value }) => {
                               field.onChange(value);
                             }}
                           >
-                            <NumberInputField onBlur={field.onBlur} />
+                            <NumberInputField
+                              onBlur={field.onBlur}
+                              borderColor="indigo.200"
+                              _focus={{ borderColor: "indigo.500" }}
+                              borderRadius="lg"
+                            />
                           </NumberInputRoot>
                         )}
                       />
                     </Field>
                     <Field
-                      width="50%"
-                      label="Author"
-                      invalid={!!errors.authorList}
-                      errorText={errors.authorList?.message}
+                      flex={1}
+                      label="Price (optional)"
+                      invalid={!!errors.price}
+                      errorText={errors.price?.message}
                     >
                       <Controller
+                        name="price"
                         control={control}
-                        name="authorList"
                         render={({ field }) => (
-                          <SelectRoot
+                          <NumberInputRoot
+                            disabled={field.disabled}
                             name={field.name}
-                            value={field.value}
+                            value={field.value ?? ""}
+                            min={0}
+                            formatOptions={{ style: "decimal", minimumFractionDigits: 0, maximumFractionDigits: 2 }}
                             onValueChange={({ value }) => {
-                              field.onChange(value);
+                              field.onChange(value || "");
                             }}
-                            onInteractOutside={() => field.onBlur()}
-                            collection={authorList}
                           >
-                            <SelectTrigger clearable>
-                              <SelectValueText placeholder="Select Author" />
-                            </SelectTrigger>
-                            <SelectContent zIndex="popover" bgColor="white">
-                              {authorList.items.map((author) => (
-                                <SelectItem
-                                  item={author}
-                                  key={author.value}
-                                  _hover={{
-                                    bgColor: "teal.100",
-                                    cursor: "pointer",
-                                  }}
-                                  _selected={{
-                                    bgColor: "teal.100",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  {author.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </SelectRoot>
+                            <NumberInputField
+                              onBlur={field.onBlur}
+                              placeholder="0.00"
+                              borderColor="indigo.200"
+                              _focus={{ borderColor: "indigo.500" }}
+                              borderRadius="lg"
+                            />
+                          </NumberInputRoot>
                         )}
                       />
                     </Field>
                   </HStack>
+                  <Field
+                    label="Author"
+                    invalid={!!errors.authorList}
+                    errorText={errors.authorList?.message}
+                  >
+                    <Controller
+                      control={control}
+                      name="authorList"
+                      render={({ field }) => (
+                        <SelectRoot
+                          name={field.name}
+                          value={field.value}
+                          onValueChange={({ value }) => {
+                            field.onChange(value);
+                          }}
+                          onInteractOutside={() => field.onBlur()}
+                          collection={authorList}
+                        >
+                          <SelectTrigger
+                            clearable
+                            borderColor="indigo.200"
+                            _focus={{ borderColor: "indigo.500" }}
+                            borderRadius="lg"
+                          >
+                            <SelectValueText placeholder={
+                              allAuthors.length === 0
+                                ? "No authors — add an author first"
+                                : "Select author"
+                            } />
+                          </SelectTrigger>
+                          <SelectContent zIndex="popover" bgColor="white" borderRadius="lg">
+                            {authorList.items.map((author) => (
+                              <SelectItem
+                                item={author}
+                                key={author.value}
+                                _hover={{
+                                  bgColor: "indigo.50",
+                                  cursor: "pointer",
+                                }}
+                                _selected={{
+                                  bgColor: "indigo.100",
+                                }}
+                              >
+                                {author.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </SelectRoot>
+                      )}
+                    />
+                  </Field>
                 </Stack>
               </DialogBody>
-              <DialogFooter>
+              <DialogFooter gap={2} borderTopWidth="1px" borderColor="indigo.50">
                 <Button
+                  variant="ghost"
                   loading={isLoading}
-                  onClick={() => reset({ authorList: [], title: "", year: "" })}
+                  onClick={() =>
+                    reset({ authorList: [], title: "", year: "", price: "" })
+                  }
+                  borderRadius="lg"
                 >
                   Cancel
                 </Button>
-                <Button loading={isLoading} type="submit">
-                  Add
+                <Button
+                  loading={isLoading}
+                  type="submit"
+                  bg="indigo.600"
+                  color="white"
+                  _hover={{ bg: "indigo.700" }}
+                  borderRadius="lg"
+                >
+                  Add Book
                 </Button>
               </DialogFooter>
             </form>
             <DialogCloseTrigger
-              color="black"
-              _hover={{ bgColor: "teal.300" }}
+              color="gray.500"
+              _hover={{ bgColor: "indigo.50" }}
             />
           </DialogContent>
         </DialogRoot>
       </Flex>
 
-      <Table.Root size="sm" variant="line">
-        <Table.Header bg="teal.500">
-          <Table.Row borderBottomWidth={3} borderColor="border.emphasized">
-            <Table.ColumnHeader width="10%">
-              <Checkbox
-                borderColor="black"
-                borderWidth={1}
-                top="1"
-                _hover={{ cursor: "pointer" }}
-                aria-label="Select all rows"
-                checked={indeterminate ? "indeterminate" : booksIDs.length > 0}
-                onCheckedChange={(changes) => {
-                  setBooksIDs(
-                    changes.checked ? books.map((item) => item.id) : []
-                  );
+      {/* Book cards grid */}
+      {books.length === 0 ? (
+        <Flex
+          direction="column"
+          align="center"
+          justify="center"
+          py={16}
+          gap={3}
+          bg="white"
+          borderRadius="xl"
+          border="1px dashed"
+          borderColor="indigo.200"
+        >
+          <Box
+            w={12}
+            h={12}
+            bg="indigo.50"
+            borderRadius="xl"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            color="indigo.400"
+          >
+            <LuBookOpen size={22} />
+          </Box>
+          <Text fontWeight="600" color="indigo.700" fontSize="md">
+            No books yet
+          </Text>
+          <Text fontSize="sm" color="gray.400" textAlign="center" maxW="240px">
+            Add your first book to start building your catalog.
+          </Text>
+        </Flex>
+      ) : (
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} gap={4}>
+          {books.map((item) => {
+            const selected = booksIDs.includes(item.id);
+            return (
+              <Box
+                key={item.id}
+                bg={selected ? "indigo.50" : "white"}
+                borderRadius="xl"
+                border="1.5px solid"
+                borderColor={selected ? "indigo.400" : "indigo.100"}
+                p={4}
+                position="relative"
+                cursor="pointer"
+                _hover={{
+                  borderColor: "indigo.300",
+                  boxShadow: "0 4px 12px rgba(99,102,241,0.1)",
                 }}
-              />
-            </Table.ColumnHeader>
-            <Table.ColumnHeader width="50%">Title</Table.ColumnHeader>
-            <Table.ColumnHeader width="20%">Year</Table.ColumnHeader>
-            <Table.ColumnHeader width="20%" textAlign="end">
-              Author
-            </Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {books.map((item) => (
-            <Table.Row
-              key={item.id}
-              borderBottomWidth={2}
-              borderColor="border.emphasized"
-              data-selected={booksIDs.includes(item.id) ? "" : undefined}
-              bg={booksIDs.includes(item.id) ? "teal.100" : "white"}
-            >
-              <Table.Cell>
-                <Checkbox
-                  borderColor="border.inverted"
-                  borderWidth={1}
-                  top="1"
-                  variant="solid"
-                  colorPalette="teal"
-                  _hover={{ cursor: "pointer" }}
-                  aria-label="Select row"
-                  checked={booksIDs.includes(item.id)}
-                  onCheckedChange={(changes) => {
-                    setBooksIDs((prev) =>
-                      changes.checked
-                        ? [...prev, item.id]
-                        : booksIDs.filter((id) => id !== item.id)
-                    );
-                  }}
-                />
-              </Table.Cell>
-              <Table.Cell>{item.title}</Table.Cell>
-              <Table.Cell>{item.year}</Table.Cell>
-              <Table.Cell textAlign="end">{item.author}</Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
+                transition="all 180ms ease"
+                onClick={() =>
+                  setBooksIDs((prev) =>
+                    selected
+                      ? prev.filter((id) => id !== item.id)
+                      : [...prev, item.id]
+                  )
+                }
+              >
+                {/* Checkbox top-right */}
+                <Box
+                  position="absolute"
+                  top={3}
+                  right={3}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Checkbox
+                    size="sm"
+                    colorPalette="indigo"
+                    checked={selected}
+                    onCheckedChange={(changes) => {
+                      setBooksIDs((prev) =>
+                        changes.checked
+                          ? [...prev, item.id]
+                          : prev.filter((id) => id !== item.id)
+                      );
+                    }}
+                    aria-label={`Select ${item.title}`}
+                  />
+                </Box>
+
+                {/* Book icon */}
+                <Box
+                  w={10}
+                  h={10}
+                  bg="indigo.100"
+                  borderRadius="lg"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  color="indigo.600"
+                  mb={3}
+                >
+                  <LuBookOpen size={18} />
+                </Box>
+
+                {/* Title */}
+                <Text
+                  fontWeight="600"
+                  fontSize="sm"
+                  color="indigo.900"
+                  mb={1}
+                  lineClamp={2}
+                  pr={6}
+                  lineHeight="1.4"
+                  textTransform="capitalize"
+                >
+                  {item.title}
+                </Text>
+
+                {/* Meta */}
+                <Flex direction="column" gap={1} mt={2}>
+                  <Flex align="center" gap={1.5}>
+                    <LuUser size={11} color="#6B7280" />
+                    <Text fontSize="xs" color="gray.500">
+                      {item.author}
+                    </Text>
+                  </Flex>
+                  <Flex align="center" gap={1.5}>
+                    <LuCalendar size={11} color="#6B7280" />
+                    <Text fontSize="xs" color="gray.500">
+                      {item.year}
+                    </Text>
+                  </Flex>
+                </Flex>
+
+                {/* Price badge */}
+                <Box mt={3}>
+                  {item.price != null ? (
+                    <Badge
+                      bg="indigo.600"
+                      color="white"
+                      borderRadius="full"
+                      px={2.5}
+                      py={0.5}
+                      fontSize="xs"
+                      fontWeight="600"
+                    >
+                      <LuTag size={9} style={{ marginRight: 3 }} />
+                      ${item.price.toFixed(2)}
+                    </Badge>
+                  ) : (
+                    <Badge
+                      bg="gray.100"
+                      color="gray.400"
+                      borderRadius="full"
+                      px={2.5}
+                      py={0.5}
+                      fontSize="xs"
+                    >
+                      No price
+                    </Badge>
+                  )}
+                </Box>
+              </Box>
+            );
+          })}
+        </SimpleGrid>
+      )}
+
+      {/* Select all bar when books exist */}
+      {books.length > 0 && (
+        <Flex align="center" gap={2} mt={3}>
+          <Checkbox
+            size="sm"
+            colorPalette="indigo"
+            checked={indeterminate ? "indeterminate" : booksIDs.length === books.length && books.length > 0}
+            onCheckedChange={(changes) => {
+              setBooksIDs(changes.checked ? books.map((b) => b.id) : []);
+            }}
+            aria-label="Select all books"
+          />
+          <Text fontSize="xs" color="gray.500">
+            {booksIDs.length > 0
+              ? `${booksIDs.length} of ${books.length} selected`
+              : `Select all ${books.length} books`}
+          </Text>
+        </Flex>
+      )}
+
       <ActionBarDelete
         hasSelection={hasSelection}
         setIsOpenModalAlert={setIsOpenModalAlert}
         setIDs={setBooksIDs}
         ids={booksIDs}
       />
-
       <AlertModal
         open={isOpenModalAlert}
         setOpen={setIsOpenModalAlert}

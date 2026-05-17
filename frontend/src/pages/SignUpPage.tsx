@@ -1,4 +1,4 @@
-import { Box, Card, Flex, Input, Stack } from "@chakra-ui/react";
+import { Box, Card, Flex, Input, Stack, Text, Link } from "@chakra-ui/react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { useForm } from "react-hook-form";
@@ -9,6 +9,7 @@ import useUsersService from "@/api/usersApi";
 import { Toaster, toaster } from "@/components/ui/toaster";
 import { SignUpRequestDto } from "@/dto/UsersDto";
 import { useState } from "react";
+import { LuBookOpen } from "react-icons/lu";
 
 const SignUpPage = () => {
   const { createUser } = useUsersService();
@@ -21,7 +22,7 @@ const SignUpPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  const handleAddAuthor = handleSubmit(async (data: SignUpRequestDto) => {
+  const handleSignUp = handleSubmit(async (data: SignUpRequestDto) => {
     if (isLoading) return;
     setIsLoading(true);
 
@@ -30,8 +31,7 @@ const SignUpPage = () => {
       navigate("/login", {
         state: {
           message: {
-            title:
-              "User created successfully! Enter your credentials to log in",
+            title: "Account created! Sign in to continue.",
             type: "success",
           },
         },
@@ -57,7 +57,7 @@ const SignUpPage = () => {
 
   return (
     <>
-      <Flex direction="column" minHeight="100vh" bg="teal.50">
+      <Flex direction="column" minHeight="100dvh" bg="#F5F3FF">
         <Box>
           <Header />
         </Box>
@@ -65,24 +65,31 @@ const SignUpPage = () => {
           direction="column"
           justify="center"
           align="center"
-          height="75vh"
           flex="1"
-          marginTop={1}
+          p={4}
         >
-          <form onSubmit={handleAddAuthor}>
+          <Flex align="center" gap={2} mb={6} color="indigo.600">
+            <LuBookOpen size={24} />
+            <Text fontWeight="700" fontSize="xl" color="indigo.700">
+              Findle
+            </Text>
+          </Flex>
+
+          <form onSubmit={handleSignUp} style={{ width: "100%", maxWidth: 400 }}>
             <Card.Root
-              w="sm"
-              // bgColor="teal.500"
+              w="full"
               borderWidth={1}
-              shadow="xl"
-              colorPalette="teal"
-              variant="elevated"
-              borderColor="gray.300"
+              shadow="lg"
+              borderColor="indigo.100"
+              bg="white"
+              borderRadius="2xl"
             >
-              <Card.Header>
-                <Card.Title>Sign up</Card.Title>
-                <Card.Description>
-                  Fill in the form below to create an account
+              <Card.Header pb={2}>
+                <Card.Title fontSize="xl" fontWeight="700" color="indigo.900">
+                  Create your account
+                </Card.Title>
+                <Card.Description color="gray.500" fontSize="sm">
+                  Join Findle — free forever
                 </Card.Description>
               </Card.Header>
               <Card.Body>
@@ -93,12 +100,15 @@ const SignUpPage = () => {
                     errorText={errors.username?.message}
                   >
                     <Input
-                      borderColor="teal.500"
+                      borderColor="indigo.200"
+                      _focus={{ borderColor: "indigo.500" }}
+                      borderRadius="lg"
+                      autoComplete="username"
                       {...register("username", {
                         required: "Username is required",
                         maxLength: {
-                          value: 20,
-                          message: "Name cannot exceed 20 characters",
+                          value: 50,
+                          message: "Username cannot exceed 50 characters",
                         },
                       })}
                     />
@@ -109,12 +119,16 @@ const SignUpPage = () => {
                     errorText={errors.email?.message}
                   >
                     <Input
-                      borderColor="teal.500"
+                      borderColor="indigo.200"
+                      _focus={{ borderColor: "indigo.500" }}
+                      borderRadius="lg"
+                      type="email"
+                      autoComplete="email"
                       {...register("email", {
                         required: "Email is required",
                         maxLength: {
-                          value: 30,
-                          message: "Email cannot exceed 30 characters",
+                          value: 255,
+                          message: "Email cannot exceed 255 characters",
                         },
                       })}
                     />
@@ -125,22 +139,52 @@ const SignUpPage = () => {
                     errorText={errors.password?.message}
                   >
                     <Input
-                      borderColor="teal.500"
+                      borderColor="indigo.200"
+                      _focus={{ borderColor: "indigo.500" }}
+                      borderRadius="lg"
                       type="password"
+                      autoComplete="new-password"
                       {...register("password", {
                         required: "Password is required",
+                        minLength: {
+                          value: 8,
+                          message: "Password must be at least 8 characters",
+                        },
                       })}
                     />
                   </Field>
                 </Stack>
               </Card.Body>
-              <Card.Footer justifyContent="flex-end">
-                <Button loading={isLoading} onClick={() => reset()}>
-                  Cancel
-                </Button>
-                <Button type="submit" loading={isLoading}>
+              <Card.Footer flexDirection="column" gap={3} pt={2}>
+                <Button
+                  type="submit"
+                  loading={isLoading}
+                  width="full"
+                  bg="indigo.600"
+                  color="white"
+                  _hover={{ bg: "indigo.700" }}
+                  borderRadius="lg"
+                  fontWeight="600"
+                >
                   Create account
                 </Button>
+                <Button
+                  variant="ghost"
+                  loading={isLoading}
+                  onClick={() => reset()}
+                  width="full"
+                  borderRadius="lg"
+                  color="gray.500"
+                  size="sm"
+                >
+                  Clear form
+                </Button>
+                <Text fontSize="sm" textAlign="center" color="gray.500">
+                  Already have an account?{" "}
+                  <Link href="/login" color="indigo.600" fontWeight="500">
+                    Sign in
+                  </Link>
+                </Text>
               </Card.Footer>
             </Card.Root>
           </form>

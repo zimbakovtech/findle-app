@@ -22,9 +22,9 @@ const Pagination: React.FC<PageProps> = (pageProps) => {
       }}
     >
       <HStack>
-        <PaginationPrevTrigger color="black" />
-        <PaginationItems color="black" />
-        <PaginationNextTrigger color="black" />
+        <PaginationPrevTrigger color="indigo.700" />
+        <PaginationItems color="indigo.700" />
+        <PaginationNextTrigger color="indigo.700" />
       </HStack>
     </PaginationRoot>
   );

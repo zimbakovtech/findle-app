@@ -166,3 +166,8 @@ coverage.xml
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# misc
+CLAUDE.md
+.claude
+.cursorrules

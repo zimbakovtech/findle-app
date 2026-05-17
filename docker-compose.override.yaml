@@ -1,0 +1,17 @@
+services:
+  frontend:
+    build:
+      target: builder
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    command: npm run dev
+
+  backend:
+    volumes:
+      - ./backend:/app
+    environment:
+      - SEED_DATA=true
+    entrypoint: ["./scripts/init_db_dev.sh"]

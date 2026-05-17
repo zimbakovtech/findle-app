@@ -28,7 +28,9 @@ async def test_add_author_already_exists(
     )
 
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json() == {'detail': f'{author.name} is already in the catalog.'}
+    assert response.json() == {
+        'detail': f'{author.name} is already in the catalog.'
+    }
 
 
 async def test_add_author_not_authenticated(async_client: AsyncClient) -> None:
@@ -275,7 +277,9 @@ async def test_list_authors_pagination_with_name_filter_return_10_authors(
             book.name = f'other_{n}'
         async_session.add_all(author_different_name)
 
-    response = await async_client.get('/authors?name=author&limit=10&offset=10')
+    response = await async_client.get(
+        '/authors?name=author&limit=10&offset=10'
+    )
 
     assert len(response.json()['authors']) == expected_authors
     assert response.json()['total_results'] == expected_results

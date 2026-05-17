@@ -19,6 +19,7 @@ import { toaster } from "@/components/ui/toaster";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import useAuthorsService from "@/api/authorsApi";
+import { getErrorDetail } from "@/dto/ApiResponseDto";
 import { PostBodyCreateAuthorDto } from "@/dto/AuthorsDto";
 import { AuthorsTableProps } from "@/pages/dashboard/Types";
 import AlertModal from "@/pages/dashboard/components/AlertModal";
@@ -66,7 +67,7 @@ const AuthorsTable: React.FC<AuthorsTableProps> = ({
         });
       } else {
         toaster.create({
-          title: response.error?.detail ?? "An error occurred",
+          title: getErrorDetail(response.error),
           type: "error",
         });
       }
@@ -85,7 +86,7 @@ const AuthorsTable: React.FC<AuthorsTableProps> = ({
       setAuthorsIDs([]);
     } else {
       toaster.create({
-        title: response.error?.detail ?? "An error occurred",
+        title: getErrorDetail(response.error),
         type: "error",
       });
     }

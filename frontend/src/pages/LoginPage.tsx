@@ -1,20 +1,13 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  Card,
-  Flex,
-  Input,
-  Stack,
-  Text,
-  Link,
-} from "@chakra-ui/react";
+import { Card, Flex, Input, Stack, Text } from "@chakra-ui/react";
 import { Field } from "@/components/ui/field";
-import { Button } from "@/components/ui/button";
 import { Toaster, toaster } from "@/components/ui/toaster";
 
 import Header from "@/components/Header";
 import useAuthService from "@/api/authApi";
+import { getErrorDetail } from "@/dto/ApiResponseDto";
 import { SignInDto } from "@/dto/UsersDto";
 import { LuBookOpen } from "react-icons/lu";
 
@@ -45,18 +38,12 @@ export default function LoginPage() {
     if (isLoading) return;
     setIsLoading(true);
 
-    const response = await signInUser({
-      email: data.email,
-      password: data.password,
-    });
+    const response = await signInUser({ email: data.email, password: data.password });
     if (response.data && response.success) {
       localStorage.setItem("token", response.data.access_token);
       navigate("/dashboard");
     } else {
-      toaster.create({
-        title: response.error?.detail ?? "An error occurred",
-        type: "error",
-      });
+      toaster.create({ title: getErrorDetail(response.error), type: "error" });
     }
 
     setIsLoading(false);
@@ -64,13 +51,13 @@ export default function LoginPage() {
 
   return (
     <>
-      <Flex direction="column" minHeight="100dvh" bg="#F5F3FF">
+      <Flex direction="column" minHeight="100dvh" style={{ backgroundColor: "#F5F3FF" }}>
         <Header />
 
         <Flex direction="column" justify="center" align="center" flex="1" p={4}>
-          <Flex align="center" gap={2} mb={6} color="indigo.600">
-            <LuBookOpen size={24} />
-            <Text fontWeight="700" fontSize="xl" color="indigo.700">
+          <Flex align="center" gap={2} mb={6}>
+            <LuBookOpen size={24} color="#4F46E5" />
+            <Text fontWeight="700" fontSize="xl" style={{ color: "#4338CA" }}>
               Findle
             </Text>
           </Flex>
@@ -80,19 +67,13 @@ export default function LoginPage() {
               w="full"
               borderWidth={1}
               shadow="lg"
-              borderColor="indigo.100"
-              bg="white"
-              borderRadius="2xl"
+              style={{ borderColor: "#E0E7FF", backgroundColor: "#ffffff", borderRadius: "16px" }}
             >
               <Card.Header pb={2}>
-                <Card.Title
-                  fontSize="xl"
-                  fontWeight="700"
-                  color="indigo.900"
-                >
+                <Card.Title style={{ fontSize: "20px", fontWeight: 700, color: "#1E1B4B" }}>
                   Welcome back
                 </Card.Title>
-                <Card.Description color="gray.500" fontSize="sm">
+                <Card.Description style={{ color: "#6B7280", fontSize: "14px" }}>
                   Sign in to your Findle account
                 </Card.Description>
               </Card.Header>
@@ -104,17 +85,14 @@ export default function LoginPage() {
                     errorText={errors.email?.message}
                   >
                     <Input
-                      borderColor="indigo.200"
-                      _focus={{ borderColor: "indigo.500" }}
+                      style={{ borderColor: "#C7D2FE", color: "#1E1B4B", backgroundColor: "#ffffff" }}
+                      _focus={{ borderColor: "#6366F1" }}
                       borderRadius="lg"
                       type="email"
                       autoComplete="email"
                       {...register("email", {
                         required: "Email is required",
-                        maxLength: {
-                          value: 255,
-                          message: "Email cannot exceed 255 characters",
-                        },
+                        maxLength: { value: 255, message: "Email cannot exceed 255 characters" },
                       })}
                     />
                   </Field>
@@ -124,47 +102,60 @@ export default function LoginPage() {
                     errorText={errors.password?.message}
                   >
                     <Input
-                      borderColor="indigo.200"
-                      _focus={{ borderColor: "indigo.500" }}
+                      style={{ borderColor: "#C7D2FE", color: "#1E1B4B", backgroundColor: "#ffffff" }}
+                      _focus={{ borderColor: "#6366F1" }}
                       borderRadius="lg"
                       type="password"
                       autoComplete="current-password"
-                      {...register("password", {
-                        required: "Password is required",
-                      })}
+                      {...register("password", { required: "Password is required" })}
                     />
                   </Field>
                 </Stack>
               </Card.Body>
               <Card.Footer flexDirection="column" gap={3} pt={2}>
-                <Button
+                <button
                   type="submit"
-                  loading={isLoading}
-                  width="full"
-                  bg="indigo.600"
-                  color="white"
-                  _hover={{ bg: "indigo.700" }}
-                  borderRadius="lg"
-                  fontWeight="600"
+                  disabled={isLoading}
+                  style={{
+                    width: "100%",
+                    padding: "10px 16px",
+                    borderRadius: "8px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    color: "#ffffff",
+                    backgroundColor: isLoading ? "#818CF8" : "#4F46E5",
+                    border: "none",
+                    cursor: isLoading ? "not-allowed" : "pointer",
+                    transition: "background 150ms ease",
+                    fontFamily: "'Inter', sans-serif",
+                  }}
                 >
-                  Sign in
-                </Button>
-                <Button
-                  variant="ghost"
-                  loading={isLoading}
+                  {isLoading ? "Signing in…" : "Sign in"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isLoading}
                   onClick={() => reset()}
-                  width="full"
-                  borderRadius="lg"
-                  color="gray.500"
-                  size="sm"
+                  style={{
+                    width: "100%",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    fontSize: "13px",
+                    fontWeight: 400,
+                    color: "#9CA3AF",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    fontFamily: "'Inter', sans-serif",
+                  }}
                 >
                   Clear form
-                </Button>
-                <Text fontSize="sm" textAlign="center" color="gray.500">
+                </button>
+                <Text fontSize="sm" textAlign="center" style={{ color: "#6B7280" }}>
                   No account yet?{" "}
-                  <Link href="/signup" color="indigo.600" fontWeight="500">
+                  <a href="/signup" style={{ color: "#4F46E5", fontWeight: 500, textDecoration: "none" }}>
                     Sign up free
-                  </Link>
+                  </a>
                 </Text>
               </Card.Footer>
             </Card.Root>

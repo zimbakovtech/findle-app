@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { LuSearch, LuPlus, LuBookOpen, LuUser, LuCalendar, LuTag } from "react-icons/lu";
+import { LuSearch, LuPlus, LuBookOpen, LuUser, LuCalendar, LuShoppingCart, LuCheck } from "react-icons/lu";
 import {
   createListCollection,
   Flex,
@@ -47,6 +47,7 @@ import {
   BooksTableProps,
 } from "@/pages/dashboard/Types";
 import useBooksService from "@/api/booksApi";
+import { getErrorDetail } from "@/dto/ApiResponseDto";
 import { PostBodyCreateBookDto } from "@/dto/BooksDto";
 import { AuthorResponseDto } from "@/dto/AuthorsDto";
 import AlertModal from "@/pages/dashboard/components/AlertModal";
@@ -77,8 +78,18 @@ const BooksTable: React.FC<BooksTableProps> = ({
   const [isOpenModalAlert, setIsOpenModalAlert] = useState(false);
   const [booksIDs, setBooksIDs] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [purchasedIDs, setPurchasedIDs] = useState<Set<number>>(new Set());
   const hasSelection = booksIDs.length > 0;
   const indeterminate = hasSelection && booksIDs.length < books.length;
+
+  const handleBuy = (e: React.MouseEvent, bookId: number, title: string, price: number) => {
+    e.stopPropagation();
+    setPurchasedIDs((prev) => new Set(prev).add(bookId));
+    toaster.create({
+      title: `"${title}" purchased for $${price.toFixed(2)}!`,
+      type: "success",
+    });
+  };
 
   useEffect(() => {
     fetchAllAuthors();
@@ -90,7 +101,7 @@ const BooksTable: React.FC<BooksTableProps> = ({
       setAllAuthors(response.data.authors);
     } else {
       toaster.create({
-        title: response.error.detail,
+        title: getErrorDetail(response.error),
         type: "error",
       });
       setAllAuthors([]);
@@ -140,7 +151,7 @@ const BooksTable: React.FC<BooksTableProps> = ({
         });
       } else {
         toaster.create({
-          title: response.error?.detail ?? "An error occurred",
+          title: getErrorDetail(response.error),
           type: "error",
         });
       }
@@ -160,7 +171,7 @@ const BooksTable: React.FC<BooksTableProps> = ({
       setBooksIDs([]);
     } else {
       toaster.create({
-        title: response.error?.detail ?? "An error occurred",
+        title: getErrorDetail(response.error),
         type: "error",
       });
     }
@@ -521,21 +532,12 @@ const BooksTable: React.FC<BooksTableProps> = ({
                   </Flex>
                 </Flex>
 
-                {/* Price badge */}
-                <Box mt={3}>
+                {/* Price + Buy */}
+                <Flex align="center" justify="space-between" mt={3} gap={2}>
                   {item.price != null ? (
-                    <Badge
-                      bg="indigo.600"
-                      color="white"
-                      borderRadius="full"
-                      px={2.5}
-                      py={0.5}
-                      fontSize="xs"
-                      fontWeight="600"
-                    >
-                      <LuTag size={9} style={{ marginRight: 3 }} />
+                    <Text fontWeight="700" fontSize="sm" style={{ color: "#4F46E5" }}>
                       ${item.price.toFixed(2)}
-                    </Badge>
+                    </Text>
                   ) : (
                     <Badge
                       bg="gray.100"
@@ -545,10 +547,48 @@ const BooksTable: React.FC<BooksTableProps> = ({
                       py={0.5}
                       fontSize="xs"
                     >
-                      No price
+                      Free
                     </Badge>
                   )}
-                </Box>
+                  {item.price != null && (
+                    purchasedIDs.has(item.id) ? (
+                      <Flex
+                        align="center"
+                        gap={1}
+                        px={2.5}
+                        py={1}
+                        borderRadius="lg"
+                        style={{ backgroundColor: "#D1FAE5", color: "#065F46", fontSize: "12px", fontWeight: 600 }}
+                      >
+                        <LuCheck size={11} />
+                        Bought
+                      </Flex>
+                    ) : (
+                      <button
+                        onClick={(e) => handleBuy(e, item.id, item.title, item.price!)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          padding: "4px 10px",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          color: "#ffffff",
+                          backgroundColor: "#4F46E5",
+                          border: "none",
+                          cursor: "pointer",
+                          transition: "background 150ms ease",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#4338CA")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#4F46E5")}
+                      >
+                        <LuShoppingCart size={11} />
+                        Buy
+                      </button>
+                    )
+                  )}
+                </Flex>
               </Box>
             );
           })}

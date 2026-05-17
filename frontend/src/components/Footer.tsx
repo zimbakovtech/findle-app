@@ -1,11 +1,11 @@
-import { Text, Box, Flex, Link } from "@chakra-ui/react";
-import { LuBookOpen, LuHeart } from "react-icons/lu";
+import { Text, Box, Flex } from "@chakra-ui/react";
+import { LuBookOpen } from "react-icons/lu";
 
 export default function Footer() {
   return (
     <Box
       as="footer"
-      bg="indigo.700"
+      style={{ backgroundColor: "#3730A3" }}
       py={6}
       px={4}
       mt={8}
@@ -18,34 +18,23 @@ export default function Footer() {
         mx="auto"
         gap={3}
       >
-        <Flex align="center" gap={2} color="white">
-          <LuBookOpen size={18} />
-          <Text fontWeight="700" fontSize="sm">
+        <Flex align="center" gap={2}>
+          <LuBookOpen size={18} color="#ffffff" />
+          <Text fontWeight="700" fontSize="sm" style={{ color: "#ffffff" }}>
             Findle
           </Text>
         </Flex>
 
-        <Text fontSize="xs" color="indigo.300" textAlign="center">
+        <Text fontSize="xs" style={{ color: "#A5B4FC" }} textAlign="center">
           © {new Date().getFullYear()} Findle — digital book catalog for FINKI
         </Text>
 
-        <Flex align="center" gap={1}>
-          <Text fontSize="xs" color="indigo.300">
-            Made with
-          </Text>
-          <LuHeart size={12} color="#A5B4FC" />
-          <Text fontSize="xs" color="indigo.300">
-            based on{" "}
-            <Link
-              href="https://github.com/lealre/madr-fullstack"
-              target="_blank"
-              color="indigo.200"
-              _hover={{ color: "white" }}
-            >
-              madr-fullstack
-            </Link>
-          </Text>
-        </Flex>
+        <Text fontSize="xs" style={{ color: "#A5B4FC" }}>
+          Built by{" "}
+          <span style={{ color: "#C7D2FE", fontWeight: 600 }}>
+            Damjan Zimbakov
+          </span>
+        </Text>
       </Flex>
     </Box>
   );

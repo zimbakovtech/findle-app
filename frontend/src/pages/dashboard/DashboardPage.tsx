@@ -5,6 +5,7 @@ import { LuUsers, LuBookOpen, LuUser } from "react-icons/lu";
 import { Toaster, toaster } from "@/components/ui/toaster";
 
 import Header from "@/components/Header";
+import { getErrorDetail } from "@/dto/ApiResponseDto";
 import AuthorsTable from "@/pages/dashboard/components/AuthorsTable";
 import { AuthorResponseDto } from "@/dto/AuthorsDto";
 import { BookResponseDto } from "@/dto/BooksDto";
@@ -69,7 +70,7 @@ const Dashboard: React.FC = () => {
       setCurrentUser(response.data);
     } else {
       toaster.create({
-        title: response.error.detail,
+        title: getErrorDetail(response.error),
         type: "error",
       });
     }
@@ -90,7 +91,7 @@ const Dashboard: React.FC = () => {
       setAuthorsTotalResults(response.data.total_results);
     } else {
       toaster.create({
-        title: response.error.detail,
+        title: getErrorDetail(response.error),
         type: "error",
       });
       setAuthors([]);
@@ -113,7 +114,7 @@ const Dashboard: React.FC = () => {
       setBooksTotalResults(response.data.total_results);
     } else {
       toaster.create({
-        title: response.error.detail,
+        title: getErrorDetail(response.error),
         type: "error",
       });
       setBooks([]);

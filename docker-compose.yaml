@@ -3,8 +3,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - VITE_APP_BACKEND_ADDRESS=${VITE_API_URL}
     container_name: frontend
     restart: always
     ports:

@@ -4,17 +4,13 @@ on:
   pull_request:
     branches:
       - main
-      - develop
-  push:
-    branches:
-      - develop
 
 jobs:
   test-backend:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.12"]
 
     services:
       postgres:

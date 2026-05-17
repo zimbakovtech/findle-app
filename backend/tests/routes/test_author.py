@@ -60,7 +60,7 @@ async def test_delete_author(
     async_client: AsyncClient, user_token: str, author: Author
 ) -> None:
     response = await async_client.delete(
-        f'/authorss/{author.id}',
+        f'/authors/{author.id}',
         headers={'Authorization': f'Bearer {user_token}'},
     )
 
@@ -83,7 +83,7 @@ async def test_delete_author_not_found(
 async def test_delete_author_not_authenticated(
     async_client: AsyncClient, author: Author
 ) -> None:
-    response = await async_client.delete(f'/authorss/{author.id}')
+    response = await async_client.delete(f'/authors/{author.id}')
 
     assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json() == {'detail': 'Not authenticated'}
@@ -154,7 +154,7 @@ async def test_update_author(
 ) -> None:
     expected_name = 'name updated'
     response = await async_client.patch(
-        f'/authorss/{author.id}',
+        f'/authors/{author.id}',
         headers={'Authorization': f'Bearer {user_token}'},
         json={'name': expected_name},
     )
@@ -191,7 +191,7 @@ async def test_update_author_not_authenticated(
 async def test_get_author_by_id(
     async_client: AsyncClient, author: Author
 ) -> None:
-    response = await async_client.get(f'/authorss/{author.id}')
+    response = await async_client.get(f'/authors/{author.id}')
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {'id': author.id, 'name': author.name}

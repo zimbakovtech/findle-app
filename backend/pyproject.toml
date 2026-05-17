@@ -3,11 +3,10 @@ name = 'findle-backend'
 version = '0.1.0'
 description = 'Findle — a digital book catalog for FINKI'
 authors = ['lealre <renaanvp@gmail.com>']
-readme = 'README.md'
 packages = [{include = 'src'}]
 
 [tool.poetry.dependencies]
-python = '3.12.*'
+python = '>=3.11,<3.14'
 alembic = '^1.13.2'
 aiosqlite = '^0.20.0'
 asyncpg = '^0.30.0'

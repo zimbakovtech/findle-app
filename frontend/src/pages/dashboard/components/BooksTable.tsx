@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { LuSearch, LuPlus, LuBookOpen, LuUser, LuCalendar, LuShoppingCart, LuCheck } from "react-icons/lu";
 import {
@@ -91,11 +91,7 @@ const BooksTable: React.FC<BooksTableProps> = ({
     });
   };
 
-  useEffect(() => {
-    fetchAllAuthors();
-  }, []);
-
-  const fetchAllAuthors = async (): Promise<void> => {
+  const fetchAllAuthors = useCallback(async (): Promise<void> => {
     const response = await getAuthors();
     if (response.data && response.success) {
       setAllAuthors(response.data.authors);
@@ -106,7 +102,11 @@ const BooksTable: React.FC<BooksTableProps> = ({
       });
       setAllAuthors([]);
     }
-  };
+  }, [getAuthors]);
+
+  useEffect(() => {
+    fetchAllAuthors();
+  }, [fetchAllAuthors]);
 
   const transformAuthorsToListCollection = (authors: AuthorResponseDto[]) => {
     return createListCollection({

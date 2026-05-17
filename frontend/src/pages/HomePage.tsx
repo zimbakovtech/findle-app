@@ -81,7 +81,7 @@ const HomePage: React.FC = () => {
       });
     }
     navigate(location.pathname, { replace: true });
-  }, [location.state]);
+  }, [location.state, location.pathname, navigate]);
 
   return (
     <>

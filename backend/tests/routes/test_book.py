@@ -22,6 +22,7 @@ async def test_add_book(
         'id': 1,
         'year': 2024,
         'title': 'book title',
+        'price': None,
         'author_id': 1,
         'author': author.name,
     }
@@ -89,11 +90,35 @@ async def test_book_title_sanitization_schema(
     assert response.json()['title'] == expected_title
 
 
+async def test_add_book_invalid_year(
+    async_client: AsyncClient, user_token: str, author: Author
+) -> None:
+    response = await async_client.post(
+        '/books',
+        headers={'Authorization': f'Bearer {user_token}'},
+        json={'year': 9999, 'title': 'bad year book', 'author_id': 1},
+    )
+
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
+async def test_patch_book_invalid_year(
+    async_client: AsyncClient, user_token: str, book: Book
+) -> None:
+    response = await async_client.patch(
+        f'/books/{book.id}',
+        headers={'Authorization': f'Bearer {user_token}'},
+        json={'year': 9999},
+    )
+
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
 async def test_delete_book(
     async_client: AsyncClient, user_token: str, book: Book
 ) -> None:
     response = await async_client.delete(
-        f'/bookss/{book.id}', headers={'Authorization': f'Bearer {user_token}'}
+        f'/books/{book.id}', headers={'Authorization': f'Bearer {user_token}'}
     )
 
     assert response.status_code == HTTPStatus.OK
@@ -114,7 +139,7 @@ async def test_delete_book_not_found(
 async def test_delete_book_not_authenticated(
     async_client: AsyncClient, book: Book
 ) -> None:
-    response = await async_client.delete(f'/bookss/{book.id}')
+    response = await async_client.delete(f'/books/{book.id}')
 
     assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json() == {'detail': 'Not authenticated'}
@@ -199,7 +224,7 @@ async def test_patch_book(
     assert book.year == input_year
 
     response = await async_client.patch(
-        f'/bookss/{book.id}',
+        f'/books/{book.id}',
         headers={'Authorization': f'Bearer {user_token}'},
         json={'year': year_expected},
     )
@@ -209,6 +234,7 @@ async def test_patch_book(
         'id': book.id,
         'year': year_expected,
         'title': book.title,
+        'price': None,
         'author': author.name,
     }
 
@@ -236,13 +262,14 @@ async def test_patch_book_not_authenticated(
 
 
 async def test_get_book_by_id(async_client: AsyncClient, book: Book) -> None:
-    response = await async_client.get(f'/bookss/{book.id}')
+    response = await async_client.get(f'/books/{book.id}')
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
         'id': book.id,
         'year': book.year,
         'title': book.title,
+        'price': None,
         'author': book.author.name,
     }
 
@@ -356,7 +383,7 @@ async def test_list_books_pagination_with_filter(
         async_session.add_all(BookFactory.create_batch(25, year=2000))
 
     response = await async_client.get(
-        f'/bookss?year=2000&limit={limit}&offset={offset}'
+        f'/books?year=2000&limit={limit}&offset={offset}'
     )
 
     assert len(response.json()['books']) == expected_books

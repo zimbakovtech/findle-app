@@ -3,7 +3,6 @@ name = 'findle-backend'
 version = '0.1.0'
 description = 'Findle — a digital book catalog for FINKI'
 authors = ['lealre <renaanvp@gmail.com>']
-readme = 'README.md'
 packages = [{include = 'src'}]
 
 [tool.poetry.dependencies]

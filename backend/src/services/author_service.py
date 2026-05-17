@@ -1,5 +1,3 @@
-from typing import cast
-
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,18 +16,14 @@ async def add_author(session: AsyncSession, author: AuthorSchema) -> Author:
 async def get_author_by_id(
     session: AsyncSession, author_id: int
 ) -> Author | None:
-    return cast(
-        Author | None,
-        await session.scalar(select(Author).where(Author.id == author_id)),
-    )
+    return await session.scalar(select(Author).where(Author.id == author_id))
 
 
 async def get_author_by_name(
     session: AsyncSession, author_name: str
 ) -> Author | None:
-    return cast(
-        Author | None,
-        await session.scalar(select(Author).where(Author.name == author_name)),
+    return await session.scalar(
+        select(Author).where(Author.name == author_name)
     )
 
 

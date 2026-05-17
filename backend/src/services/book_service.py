@@ -1,5 +1,3 @@
-from typing import cast
-
 from sqlalchemy import and_, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -17,26 +15,20 @@ async def add_book(session: AsyncSession, book: BookSchema) -> Book:
 
 
 async def get_book_by_id(session: AsyncSession, book_id: int) -> Book | None:
-    return cast(
-        Book | None,
-        await session.scalar(
-            select(Book)
-            .options(selectinload(Book.author))
-            .where(Book.id == book_id)
-        ),
+    return await session.scalar(
+        select(Book)
+        .options(selectinload(Book.author))
+        .where(Book.id == book_id)
     )
 
 
 async def get_book_by_title(
     session: AsyncSession, book_title: str
 ) -> Book | None:
-    return cast(
-        Book | None,
-        await session.scalar(
-            select(Book)
-            .options(selectinload(Book.author))
-            .where(Book.title == book_title)
-        ),
+    return await session.scalar(
+        select(Book)
+        .options(selectinload(Book.author))
+        .where(Book.title == book_title)
     )
 
 

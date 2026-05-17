@@ -1,5 +1,3 @@
-from typing import cast
-
 import anyio
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -15,9 +13,8 @@ from src.utils import DATA
 async def _get_or_create_author(
     session: AsyncSession, schema: AuthorSchema
 ) -> Author | None:
-    author = cast(
-        Author | None,
-        await session.scalar(select(Author).where(Author.name == schema.name)),
+    author = await session.scalar(
+        select(Author).where(Author.name == schema.name)
     )
     if author is not None:
         return author
@@ -30,11 +27,8 @@ async def _get_or_create_author(
         return author
     except IntegrityError:
         await session.rollback()
-        return cast(
-            Author | None,
-            await session.scalar(
-                select(Author).where(Author.name == schema.name)
-            ),
+        return await session.scalar(
+            select(Author).where(Author.name == schema.name)
         )
 
 

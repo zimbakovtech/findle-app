@@ -32,7 +32,7 @@ export default function LoginPage() {
       });
     }
     navigate(location.pathname, { replace: true });
-  }, [location.state]);
+  }, [location.state, location.pathname, navigate]);
 
   const handleLogin = handleSubmit(async (data) => {
     if (isLoading) return;

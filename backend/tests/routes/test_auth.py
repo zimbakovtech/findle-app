@@ -1,15 +1,26 @@
 import typing
+from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 
 import pytest
 from fastapi import HTTPException
-from freezegun import freeze_time
 from httpx import AsyncClient
+from jwt import encode
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.dependencies import get_current_user
 from src.core.security import create_access_token
+from src.core.settings import settings
 from tests.conftest import MockedUser
+
+
+def _expired_token(email: str) -> str:
+    expire = datetime.now(timezone.utc) - timedelta(minutes=1)
+    return encode(
+        {'sub': email, 'exp': expire},
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM,
+    )
 
 
 async def test_get_token(async_client: AsyncClient, user: MockedUser) -> None:
@@ -53,28 +64,20 @@ async def test_token_wrong_password(
 async def test_token_expired_after_time(
     async_client: AsyncClient, user: MockedUser
 ) -> None:
-    with freeze_time('2024-01-01 12:00:00'):
-        response = await async_client.post(
-            '/auth/token',
-            data={'username': user.email, 'password': user.clean_password},
-        )
+    token = _expired_token(user.email)
 
-        assert response.status_code == HTTPStatus.OK
-        token = response.json()['access_token']
+    response = await async_client.patch(
+        '/users/me/',
+        headers={'Authorization': f'Bearer {token}'},
+        json={
+            'username': 'update',
+            'email': 'update@update.com',
+            'password': 'update',
+        },
+    )
 
-    with freeze_time('2024-01-01 13:01:00'):
-        response = await async_client.patch(
-            '/users/me/',
-            headers={'Authorization': f'Bearer {token}'},
-            json={
-                'username': 'update',
-                'email': 'update@update.com',
-                'password': 'update',
-            },
-        )
-
-        assert response.status_code == HTTPStatus.UNAUTHORIZED
-        assert response.json() == {'detail': 'Could not validate credentials.'}
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json() == {'detail': 'Could not validate credentials.'}
 
 
 async def test_refresh_token(
@@ -95,23 +98,15 @@ async def test_refresh_token(
 async def test_token_expired_dont_refresh(
     async_client: AsyncClient, user: MockedUser
 ) -> None:
-    with freeze_time('2024-01-01 12:00:00'):
-        response = await async_client.post(
-            '/auth/token',
-            data={'username': user.email, 'password': user.clean_password},
-        )
+    token = _expired_token(user.email)
 
-        assert response.status_code == HTTPStatus.OK
-        token = response.json()['access_token']
+    response = await async_client.post(
+        '/auth/refresh_token/',
+        headers={'Authorization': f'Bearer {token}'},
+    )
 
-    with freeze_time('2024-01-01 13:01:00'):
-        response = await async_client.post(
-            '/auth/refresh_token/',
-            headers={'Authorization': f'Bearer {token}'},
-        )
-
-        assert response.status_code == HTTPStatus.UNAUTHORIZED
-        assert response.json() == {'detail': 'Could not validate credentials.'}
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json() == {'detail': 'Could not validate credentials.'}
 
 
 async def test_user_not_found_get_current_user(

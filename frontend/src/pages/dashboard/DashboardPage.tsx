@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Text, Box, Flex, Container, Center, Badge } from "@chakra-ui/react";
 import { Tabs } from "@chakra-ui/react";
 import { LuUsers, LuBookOpen, LuUser } from "react-icons/lu";
@@ -54,17 +54,17 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     getCurrentUserInfo();
-  }, []);
+  }, [getCurrentUserInfo]);
 
   useEffect(() => {
     fetchAuthors();
-  }, [authorsCurrentPage]);
+  }, [authorsCurrentPage, fetchAuthors]);
 
   useEffect(() => {
     fetchBooks();
-  }, [booksCurrentPage]);
+  }, [booksCurrentPage, fetchBooks]);
 
-  const getCurrentUserInfo = async () => {
+  const getCurrentUserInfo = useCallback(async () => {
     const response = await getCurrentUser();
     if (response.data && response.success) {
       setCurrentUser(response.data);
@@ -74,9 +74,9 @@ const Dashboard: React.FC = () => {
         type: "error",
       });
     }
-  };
+  }, [getCurrentUser]);
 
-  const fetchAuthors = async (): Promise<void> => {
+  const fetchAuthors = useCallback(async (): Promise<void> => {
     if (isLoading) return;
     setIsLoading(true);
     const offset = (authorsCurrentPage - 1) * pageSize;
@@ -97,9 +97,9 @@ const Dashboard: React.FC = () => {
       setAuthors([]);
     }
     setIsLoading(false);
-  };
+  }, [isLoading, authorsCurrentPage, pageSize, authorsSearchQuery, getAuthors]);
 
-  const fetchBooks = async (): Promise<void> => {
+  const fetchBooks = useCallback(async (): Promise<void> => {
     if (isLoading) return;
     setIsLoading(true);
     const offset = (booksCurrentPage - 1) * pageSize;
@@ -120,11 +120,15 @@ const Dashboard: React.FC = () => {
       setBooks([]);
     }
     setIsLoading(false);
-  };
+  }, [isLoading, booksCurrentPage, pageSize, booksSearchQuery, getBooks]);
 
   const changeTabView = (e: TabProps) => {
     setTab(e);
-    e.value === "authors" ? fetchAuthors() : fetchBooks();
+    if (e.value === "authors") {
+      fetchAuthors();
+    } else {
+      fetchBooks();
+    }
   };
 
   return (

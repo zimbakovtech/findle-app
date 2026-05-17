@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Box, Card, Flex, Input, Stack } from "@chakra-ui/react";
+import { Card, Flex, Input, Stack, Text } from "@chakra-ui/react";
 import { Field } from "@/components/ui/field";
-import { Button } from "@/components/ui/button";
 import { Toaster, toaster } from "@/components/ui/toaster";
 
-import Header from "@/components/Header.tsx";
-import useAuthService from "@/api/authApi.ts";
+import Header from "@/components/Header";
+import useAuthService from "@/api/authApi";
+import { getErrorDetail } from "@/dto/ApiResponseDto";
 import { SignInDto } from "@/dto/UsersDto";
+import { LuBookOpen } from "react-icons/lu";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -37,18 +38,12 @@ export default function LoginPage() {
     if (isLoading) return;
     setIsLoading(true);
 
-    const response = await signInUser({
-      email: data.email,
-      password: data.password,
-    });
+    const response = await signInUser({ email: data.email, password: data.password });
     if (response.data && response.success) {
       localStorage.setItem("token", response.data.access_token);
       navigate("/dashboard");
     } else {
-      toaster.create({
-        title: response.error?.detail ?? "An error occurred",
-        type: "error",
-      });
+      toaster.create({ title: getErrorDetail(response.error), type: "error" });
     }
 
     setIsLoading(false);
@@ -56,26 +51,30 @@ export default function LoginPage() {
 
   return (
     <>
-      <Flex direction="column" minHeight="100vh" gap={1} bg="teal.50">
-        <Box>
-          <Header />
-        </Box>
+      <Flex direction="column" minHeight="100dvh" style={{ backgroundColor: "#F5F3FF" }}>
+        <Header />
 
-        <Flex direction="column" justify="center" align="center" flex="1">
-          <form onSubmit={handleLogin}>
+        <Flex direction="column" justify="center" align="center" flex="1" p={4}>
+          <Flex align="center" gap={2} mb={6}>
+            <LuBookOpen size={24} color="#4F46E5" />
+            <Text fontWeight="700" fontSize="xl" style={{ color: "#4338CA" }}>
+              Findle
+            </Text>
+          </Flex>
+
+          <form onSubmit={handleLogin} style={{ width: "100%", maxWidth: 400 }}>
             <Card.Root
-              w="sm"
-              // bgColor="teal.500"
+              w="full"
               borderWidth={1}
-              shadow="xl"
-              colorPalette="teal"
-              variant="elevated"
-              borderColor="gray.300"
+              shadow="lg"
+              style={{ borderColor: "#E0E7FF", backgroundColor: "#ffffff", borderRadius: "16px" }}
             >
-              <Card.Header>
-                <Card.Title>Login</Card.Title>
-                <Card.Description color="black">
-                  Fill in the form below to login
+              <Card.Header pb={2}>
+                <Card.Title style={{ fontSize: "20px", fontWeight: 700, color: "#1E1B4B" }}>
+                  Welcome back
+                </Card.Title>
+                <Card.Description style={{ color: "#6B7280", fontSize: "14px" }}>
+                  Sign in to your Findle account
                 </Card.Description>
               </Card.Header>
               <Card.Body>
@@ -86,13 +85,14 @@ export default function LoginPage() {
                     errorText={errors.email?.message}
                   >
                     <Input
-                      borderColor="teal.500"
+                      style={{ borderColor: "#C7D2FE", color: "#1E1B4B", backgroundColor: "#ffffff" }}
+                      _focus={{ borderColor: "#6366F1" }}
+                      borderRadius="lg"
+                      type="email"
+                      autoComplete="email"
                       {...register("email", {
                         required: "Email is required",
-                        maxLength: {
-                          value: 30,
-                          message: "Email cannot exceed 30 characters",
-                        },
+                        maxLength: { value: 255, message: "Email cannot exceed 255 characters" },
                       })}
                     />
                   </Field>
@@ -102,22 +102,61 @@ export default function LoginPage() {
                     errorText={errors.password?.message}
                   >
                     <Input
-                      borderColor="teal.500"
+                      style={{ borderColor: "#C7D2FE", color: "#1E1B4B", backgroundColor: "#ffffff" }}
+                      _focus={{ borderColor: "#6366F1" }}
+                      borderRadius="lg"
                       type="password"
-                      {...register("password", {
-                        required: "Password is required",
-                      })}
+                      autoComplete="current-password"
+                      {...register("password", { required: "Password is required" })}
                     />
                   </Field>
                 </Stack>
               </Card.Body>
-              <Card.Footer justifyContent="flex-end">
-                <Button loading={isLoading} onClick={() => reset()}>
-                  Cancel
-                </Button>
-                <Button type="submit" loading={isLoading}>
-                  Sign in
-                </Button>
+              <Card.Footer flexDirection="column" gap={3} pt={2}>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  style={{
+                    width: "100%",
+                    padding: "10px 16px",
+                    borderRadius: "8px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    color: "#ffffff",
+                    backgroundColor: isLoading ? "#818CF8" : "#4F46E5",
+                    border: "none",
+                    cursor: isLoading ? "not-allowed" : "pointer",
+                    transition: "background 150ms ease",
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  {isLoading ? "Signing in…" : "Sign in"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => reset()}
+                  style={{
+                    width: "100%",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    fontSize: "13px",
+                    fontWeight: 400,
+                    color: "#9CA3AF",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  Clear form
+                </button>
+                <Text fontSize="sm" textAlign="center" style={{ color: "#6B7280" }}>
+                  No account yet?{" "}
+                  <a href="/signup" style={{ color: "#4F46E5", fontWeight: 500, textDecoration: "none" }}>
+                    Sign up free
+                  </a>
+                </Text>
               </Card.Footer>
             </Card.Root>
           </form>

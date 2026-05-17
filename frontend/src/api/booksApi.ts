@@ -33,7 +33,7 @@ const useBooksService = () => {
   const deleteBooksBatch = async (
     data: DeleteBooksBodyBatchDto
   ): Promise<ApiResponseDto<MessageDto>> => {
-    const response = Post<MessageDto, DeleteBooksBodyBatchDto>(
+    const response = await Post<MessageDto, DeleteBooksBodyBatchDto>(
       "/books/delete/batch",
       data
     );

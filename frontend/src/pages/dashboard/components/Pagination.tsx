@@ -21,10 +21,10 @@ const Pagination: React.FC<PageProps> = (pageProps) => {
         setCurrentPage(e.page);
       }}
     >
-      <HStack>
-        <PaginationPrevTrigger color="black" />
-        <PaginationItems color="black" />
-        <PaginationNextTrigger color="black" />
+      <HStack style={{ color: "#3730A3" }}>
+        <PaginationPrevTrigger />
+        <PaginationItems />
+        <PaginationNextTrigger />
       </HStack>
     </PaginationRoot>
   );

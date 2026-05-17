@@ -7,7 +7,7 @@ function App() {
   return (
     <>
       <Provider>
-        <Theme appearance="light">
+        <Theme appearance="light" colorPalette="indigo">
           <AppRouter />
         </Theme>
       </Provider>

@@ -43,6 +43,7 @@ class Book(Base):
     author_id: Mapped[int] = mapped_column(
         ForeignKey('authors.id', ondelete='CASCADE')
     )
+    price: Mapped[float | None] = mapped_column(default=None, nullable=True)
     author: Mapped['Author'] = relationship(
         back_populates='books',
     )

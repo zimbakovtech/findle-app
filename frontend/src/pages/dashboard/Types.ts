@@ -59,6 +59,19 @@ export const bookFormSchema = z.object({
   authorList: z
     .array(z.string({ invalid_type_error: "Author must be a string" }))
     .length(1, { message: "Author is required" }),
+
+  price: z
+    .string()
+    .optional()
+    .transform((val) => (val === "" || val === undefined ? "" : val))
+    .refine(
+      (val) => {
+        if (val === "" || val === undefined) return true;
+        const num = parseFloat(val);
+        return !isNaN(num) && num >= 0;
+      },
+      { message: "Price must be a positive number" }
+    ),
 });
 
 export type BookFormSchema = z.infer<typeof bookFormSchema>;

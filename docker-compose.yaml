@@ -3,14 +3,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - VITE_APP_BACKEND_ADDRESS=${VITE_API_URL}
     container_name: frontend
     restart: always
     ports:
-      - 3000:3000
+      - "3000:3000"
     networks:
-      - network
+      - findle-network
+    depends_on:
+      - backend
     env_file:
       - ./frontend/.env
 
@@ -19,35 +19,38 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: backend
-    entrypoint: ./scripts/init_db.sh
     ports:
-      - 8000:8000
+      - "8000:8000"
     networks:
-      - network
+      - findle-network
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     env_file:
       - ./backend/.env
 
   postgres:
-    image: postgres:latest
+    image: postgres:16
     container_name: postgres
     restart: always
     ports:
-      - 5432:5432
+      - "5432:5432"
     networks:
-      - network
+      - findle-network
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_DB: findle_db
       POSTGRES_PASSWORD: admin
+      POSTGRES_DB: findle_db
     volumes:
-      - postgres_data:/var/lib/postgresql
-    env_file:
-      - ./backend/.env
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d findle_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
-  network:
+  findle-network:
     driver: bridge
 
 volumes:

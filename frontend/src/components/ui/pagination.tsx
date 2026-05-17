@@ -131,7 +131,8 @@ export const PaginationPrevTrigger = React.forwardRef<
       <IconButton
         variant={variantMap.default}
         size={size}
-        _hover={{ backgroundColor: "teal.200" }}
+        style={{ color: "#3730A3" }}
+        _hover={{ backgroundColor: "indigo.100" }}
       >
         <HiChevronLeft />
       </IconButton>
@@ -163,7 +164,8 @@ export const PaginationNextTrigger = React.forwardRef<
       <IconButton
         variant={variantMap.default}
         size={size}
-        _hover={{ backgroundColor: "teal.200" }}
+        style={{ color: "#3730A3" }}
+        _hover={{ backgroundColor: "indigo.100" }}
       >
         <HiChevronRight />
       </IconButton>
@@ -180,8 +182,9 @@ export const PaginationItems = (props: React.HTMLAttributes<HTMLElement>) => {
             <PaginationEllipsis key={index} index={index} {...props} />
           ) : (
             <PaginationItem
-              _hover={{backgroundColor: "teal.200"}}
-              _selected={{ borderWidth: "", borderColor: "teal.focusRing"}}
+              _hover={{ backgroundColor: "indigo.100" }}
+              _selected={{ borderWidth: "2px", borderColor: "indigo.500", fontWeight: "600", color: "#3730A3" }}
+              style={{ color: "#3730A3" }}
               key={index}
               type="page"
               value={page.value}

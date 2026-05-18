@@ -209,7 +209,6 @@ All manifests live in `k8s/`. All resources run in the `findle` namespace.
 | `postgres-configmap.yaml` | ConfigMap | DB name and user (non-sensitive) |
 | `postgres-statefulset.yaml` | StatefulSet | PostgreSQL 16, 1 replica, 1Gi PVC |
 | `postgres-service.yaml` | Service (ClusterIP) | Internal postgres access on port 5432 |
-| `backend-secret.yaml` | Secret | SECRET_KEY, superuser password |
 | `backend-configmap.yaml` | ConfigMap | JWT config, superuser username/email, SEED_DATA |
 | `backend-deployment.yaml` | Deployment | FastAPI, 2 replicas, init container runs migrations |
 | `backend-service.yaml` | Service (ClusterIP) | Internal backend access on port 8000 |
@@ -217,23 +216,30 @@ All manifests live in `k8s/`. All resources run in the `findle` namespace.
 | `frontend-deployment.yaml` | Deployment | Nginx + React SPA, 2 replicas |
 | `frontend-service.yaml` | Service (ClusterIP) | Internal frontend access on port 3000 |
 | `ingress.yaml` | Ingress | Routes `/api/*` → backend, `/` → frontend |
+| `secrets.env.example` | — | Template for secrets (copy to `secrets.env`, gitignored) |
+| `apply-secrets.sh` | — | Script that reads `secrets.env` and creates K8s Secrets |
+
+Secrets are **not stored in YAML files**. They are created from a local `secrets.env` file that is gitignored.
 
 ### Deploy to a Cluster
 
 **Prerequisites:** kubectl configured, NGINX Ingress Controller installed on cluster.
 
 ```bash
-# 1. Edit secrets with your real values before applying
-#    Encode values: echo -n 'your-value' | base64
-#    Update: k8s/postgres-secret.yaml and k8s/backend-secret.yaml
+# 1. Create your secrets file from the template
+cp k8s/secrets.env.example k8s/secrets.env
+# Edit k8s/secrets.env — set real passwords and SECRET_KEY
 
-# 2. Apply all manifests
+# 2. Apply secrets (reads secrets.env, never writes base64 to disk)
+bash k8s/apply-secrets.sh
+
+# 3. Apply all other manifests
 kubectl apply -f k8s/
 
-# 3. Verify everything is running
+# 4. Verify everything is running
 kubectl get all -n findle
 
-# 4. Check ingress
+# 5. Check ingress
 kubectl get ingress -n findle
 ```
 

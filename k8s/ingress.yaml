@@ -6,11 +6,11 @@ metadata:
   labels:
     app.kubernetes.io/part-of: findle
   annotations:
-    kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
 spec:
+  ingressClassName: nginx
   rules:
     - http:
         paths:

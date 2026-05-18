@@ -3,7 +3,7 @@ WORKDIR /app
 COPY . .
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
-RUN npm install
+RUN npm ci
 RUN npm run build
 
 FROM nginx:1.25.4-alpine-slim AS prod

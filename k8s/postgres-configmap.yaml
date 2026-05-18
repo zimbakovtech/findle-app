@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-configmap
+  namespace: findle
+  labels:
+    app: postgres
+    app.kubernetes.io/part-of: findle
+data:
+  POSTGRES_DB: findle_db
+  POSTGRES_USER: postgres

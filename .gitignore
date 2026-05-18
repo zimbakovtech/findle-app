@@ -167,6 +167,8 @@ coverage.xml
 .yarn/install-state.gz
 .pnp.*
 
+k8s/secrets.env
+
 # misc
 CLAUDE.md
 .claude

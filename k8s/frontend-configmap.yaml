@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-configmap
+  namespace: findle
+  labels:
+    app: frontend
+    app.kubernetes.io/part-of: findle
+# NOTE: VITE_API_URL is a build-time variable embedded into the static assets
+# by Vite during the Docker image build. The value below is informational only
+# and does NOT affect runtime behavior. To change the API URL, rebuild the
+# frontend image with: --build-arg VITE_API_URL=http://your-backend-url
+data:
+  VITE_API_URL: http://backend:8000

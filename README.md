@@ -68,18 +68,19 @@ findle-app/
 │   └── cd.yaml               # Tag-triggered: build + push to DockerHub
 ├── k8s/
 │   ├── namespace.yaml
-│   ├── postgres-secret.yaml
 │   ├── postgres-configmap.yaml
 │   ├── postgres-statefulset.yaml
 │   ├── postgres-service.yaml
-│   ├── backend-secret.yaml
 │   ├── backend-configmap.yaml
 │   ├── backend-deployment.yaml
 │   ├── backend-service.yaml
 │   ├── frontend-configmap.yaml
 │   ├── frontend-deployment.yaml
 │   ├── frontend-service.yaml
-│   └── ingress.yaml
+│   ├── ingress.yaml
+│   ├── secrets.env.example       # Template (commit)
+│   ├── secrets.env               # Real values (gitignored)
+│   └── apply-secrets.sh          # Creates K8s Secrets from secrets.env
 ├── backend/
 │   ├── Dockerfile
 │   ├── .dockerignore
@@ -205,96 +206,156 @@ All manifests live in `k8s/`. All resources run in the `findle` namespace.
 | File | Resource | Description |
 |---|---|---|
 | `namespace.yaml` | Namespace | `findle` — isolates all resources |
-| `postgres-secret.yaml` | Secret | Postgres credentials + DATABASE_URL |
-| `postgres-configmap.yaml` | ConfigMap | DB name and user (non-sensitive) |
-| `postgres-statefulset.yaml` | StatefulSet | PostgreSQL 16, 1 replica, 1Gi PVC |
+| `postgres-configmap.yaml` | ConfigMap | Postgres DB name and user (non-sensitive) |
+| `postgres-statefulset.yaml` | StatefulSet | PostgreSQL 16, 1 replica, 1Gi PVC, `pg_isready` probes |
 | `postgres-service.yaml` | Service (ClusterIP) | Internal postgres access on port 5432 |
-| `backend-configmap.yaml` | ConfigMap | JWT config, superuser username/email, SEED_DATA |
-| `backend-deployment.yaml` | Deployment | FastAPI, 2 replicas, init container runs migrations |
+| `backend-configmap.yaml` | ConfigMap | JWT config, superuser username/email, `SEED_DATA`, `ROOT_PATH=/api` |
+| `backend-deployment.yaml` | Deployment | FastAPI, 2 replicas, init container runs Alembic migrations + superuser creation |
 | `backend-service.yaml` | Service (ClusterIP) | Internal backend access on port 8000 |
-| `frontend-configmap.yaml` | ConfigMap | VITE_API_URL reference (build-time only) |
+| `frontend-configmap.yaml` | ConfigMap | `VITE_API_URL` reference (build-time only) |
 | `frontend-deployment.yaml` | Deployment | Nginx + React SPA, 2 replicas |
 | `frontend-service.yaml` | Service (ClusterIP) | Internal frontend access on port 3000 |
-| `ingress.yaml` | Ingress | Routes `/api/*` → backend, `/` → frontend |
-| `secrets.env.example` | — | Template for secrets (copy to `secrets.env`, gitignored) |
-| `apply-secrets.sh` | — | Script that reads `secrets.env` and creates K8s Secrets |
+| `ingress.yaml` | Ingress (×2) | Split routing — `/api/*` → backend with rewrite, `/` → frontend |
+| `secrets.env.example` | Template | Copy to `secrets.env` and fill in real values |
+| `secrets.env` | Local only | **Gitignored.** Contains real passwords + `SECRET_KEY` |
+| `apply-secrets.sh` | Script | Reads `secrets.env` and creates `postgres-secret` + `backend-secret` via `kubectl` |
 
-Secrets are **not stored in YAML files**. They are created from a local `secrets.env` file that is gitignored.
+**Secrets are never stored in YAML in the repo.** They are created from a local gitignored `secrets.env` file via a script.
 
-### Deploy to a Cluster
+### Architecture
 
-**Prerequisites:** kubectl configured, NGINX Ingress Controller installed on cluster.
+```
+Internet / localhost
+    │
+    ▼
+[NGINX Ingress Controller] (LoadBalancer Service, port 80)
+    │
+    ├─ /api/* ──── (rewrite-target /$2) ──► [backend Service :8000]
+    │                                              │
+    │                                              ▼
+    │                                       [backend Deployment]
+    │                                        2 replicas (FastAPI)
+    │                                              │
+    │                                              ▼
+    │                                       [postgres Service :5432]
+    │                                              │
+    │                                              ▼
+    │                                       [postgres StatefulSet]
+    │                                        1 replica + 1Gi PVC
+    │
+    └─ /* ──────────────────────────────► [frontend Service :3000]
+                                                   │
+                                                   ▼
+                                            [frontend Deployment]
+                                             2 replicas (Nginx + SPA)
+```
+
+### Quick Deploy with k3d (local demo)
+
+`k3d` runs k3s in Docker — fastest local Kubernetes for demos.
+
+**Prerequisites:** Docker, `kubectl`, `k3d` (`brew install k3d`).
 
 ```bash
-# 1. Create your secrets file from the template
+# 1. Create cluster with port 80 mapped, Traefik disabled
+k3d cluster create findle \
+  --port "80:80@loadbalancer" \
+  --port "443:443@loadbalancer" \
+  --k3s-arg "--disable=traefik@server:0"
+
+# 2. Install NGINX Ingress Controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/cloud/deploy.yaml
+
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=120s
+
+# 3. Build images and import into k3d (faster than DockerHub round-trip)
+docker build -t zimbakovtech/findle-backend:latest ./backend
+docker build --build-arg VITE_API_URL=/api -t zimbakovtech/findle-frontend:latest ./frontend
+
+k3d image import zimbakovtech/findle-backend:latest -c findle
+k3d image import zimbakovtech/findle-frontend:latest -c findle
+
+# 4. Prepare secrets
 cp k8s/secrets.env.example k8s/secrets.env
-# Edit k8s/secrets.env — set real passwords and SECRET_KEY
+# Edit k8s/secrets.env — set real passwords and SECRET_KEY (use: openssl rand -hex 32)
 
-# 2. Apply secrets (reads secrets.env, never writes base64 to disk)
+# 5. Apply everything
 bash k8s/apply-secrets.sh
-
-# 3. Apply all other manifests
 kubectl apply -f k8s/
 
-# 4. Verify everything is running
-kubectl get all -n findle
+# 6. Wait for all pods
+kubectl get pods -n findle -w
+```
 
-# 5. Check ingress
-kubectl get ingress -n findle
+Open [http://localhost](http://localhost). API docs at [http://localhost/api/docs](http://localhost/api/docs).
+
+### Deploy to a Production Cluster
+
+```bash
+# 1. Ensure NGINX Ingress Controller is installed
+# 2. Push images to DockerHub via tag push (CD workflow)
+git tag v1.0.0 && git push origin v1.0.0
+
+# 3. Prepare secrets
+cp k8s/secrets.env.example k8s/secrets.env
+# Edit with production-grade values
+
+# 4. Apply
+bash k8s/apply-secrets.sh
+kubectl apply -f k8s/
 ```
 
 ### Verify Deployment
 
 ```bash
-# Watch pod startup (init container runs migrations first)
-kubectl get pods -n findle -w
+# Pod status
+kubectl get pods -n findle
 
-# Check backend logs
-kubectl logs -n findle deployment/backend -c db-migrate   # init container
-kubectl logs -n findle deployment/backend -c backend      # main container
+# All resources
+kubectl get all -n findle
 
-# Check postgres
+# Ingress (should show CLASS=nginx and an ADDRESS)
+kubectl get ingress -n findle
+
+# Init container logs (migrations)
+kubectl logs -n findle deployment/backend -c db-migrate
+
+# Backend logs
+kubectl logs -n findle -l app=backend -c backend --tail=50
+
+# Postgres logs
 kubectl logs -n findle statefulset/postgres
 
-# Port-forward for local testing (bypasses ingress)
-kubectl port-forward -n findle svc/frontend 3000:3000
-kubectl port-forward -n findle svc/backend 8000:8000
+# Test ingress routes
+curl -I http://localhost/                     # frontend HTML
+curl -I http://localhost/api/openapi.json     # backend JSON
+curl -s http://localhost/api/openapi.json | head -c 100
 ```
 
-### Architecture
+### Teardown
 
-```
-Internet
-    │
-    ▼
-[Ingress] nginx
-    │
-    ├─ /api/* ──────► [backend Service :8000]
-    │                       │
-    │                       ▼
-    │                [backend Deployment]
-    │                 2 replicas (FastAPI)
-    │                       │
-    │                       ▼
-    │                [postgres Service :5432]
-    │                       │
-    │                       ▼
-    │                [postgres StatefulSet]
-    │                 1 replica + 1Gi PVC
-    │
-    └─ /* ─────────► [frontend Service :3000]
-                           │
-                           ▼
-                    [frontend Deployment]
-                     2 replicas (Nginx + SPA)
+```bash
+kubectl delete -f k8s/
+kubectl delete secret postgres-secret backend-secret -n findle
+kubectl delete namespace findle
+
+# Or wipe entire k3d cluster
+k3d cluster delete findle
 ```
 
 ### Key Design Decisions
 
 - **Init container** in backend Deployment runs `alembic upgrade head` + superuser creation before the API starts — avoids race conditions between migrations and API startup.
-- **StatefulSet** for Postgres with a `volumeClaimTemplate` ensures each pod gets its own stable PVC.
-- **All Secrets** use base64-encoded placeholder values with comments explaining how to replace them.
-- **VITE_API_URL** is a Vite build-time variable baked into static assets — it cannot be changed at runtime without rebuilding the image.
+- **StatefulSet** for Postgres with a `volumeClaimTemplate` ensures stable identity and persistent storage via PVC, surviving pod restarts.
+- **Two Ingress resources** instead of one — the `rewrite-target` annotation applies to all rules in an Ingress, so backend (with rewrite) and frontend (no rewrite) must be split to avoid mangling static asset paths.
+- **`ROOT_PATH=/api`** environment variable tells FastAPI it's mounted behind `/api`, so generated OpenAPI URLs and Swagger UI fetches use the correct prefix.
+- **`VITE_API_URL=/api`** is baked into the frontend image at build time as a relative path, so the SPA's API calls go through the same ingress.
+- **Secrets workflow** — `k8s/secrets.env` (gitignored) → `apply-secrets.sh` → `kubectl create secret --dry-run | kubectl apply`. No base64 stored in repo, idempotent re-runs.
+- **Resource limits** on all containers — predictable scheduling, prevents noisy-neighbor issues.
+- **Readiness + liveness probes** on every workload — Kubernetes can route traffic only to healthy pods and restart crashed ones.
 
 ---
 
@@ -330,7 +391,9 @@ See [GIT_WORKFLOW.md](GIT_WORKFLOW.md) for full details.
 | Kubernetes — Service | 10% | ✅ Done |
 | Kubernetes — Ingress | 10% | ✅ Done |
 | Kubernetes — StatefulSet for database | 10% | ✅ Done |
-| Deploy manifests to cluster and demonstrate | 10% | ⏳ Pending demo |
+| Deploy manifests to cluster and demonstrate | 10% | ✅ Done (k3d local cluster) |
+
+**Total: 100%**
 
 ---
 

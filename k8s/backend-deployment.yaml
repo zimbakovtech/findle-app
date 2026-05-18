@@ -110,6 +110,11 @@ spec:
                 configMapKeyRef:
                   name: backend-configmap
                   key: SEED_DATA
+            - name: ROOT_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-configmap
+                  key: ROOT_PATH
           readinessProbe:
             httpGet:
               path: /docs

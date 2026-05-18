@@ -5,7 +5,11 @@ from src.api.main import api_router
 from src.core.settings import settings
 from src.schemas.base import Message
 
-app = FastAPI(title='Findle API', version='1.0.0')
+app = FastAPI(
+    title='Findle API',
+    version='1.0.0',
+    root_path=settings.ROOT_PATH,
+)
 
 app.add_middleware(
     CORSMiddleware,

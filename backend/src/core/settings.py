@@ -21,5 +21,7 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_EMAIL: str = 'admin@admin.com'
     FIRST_SUPERUSER_PASSWORD: str = 'admin'
 
+    ROOT_PATH: str = ''
+
 
 settings = Settings()

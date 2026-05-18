@@ -12,3 +12,4 @@ data:
   FIRST_SUPERUSER_USERNAME: admin
   FIRST_SUPERUSER_EMAIL: admin@findle.local
   SEED_DATA: "true"
+  ROOT_PATH: "/api"

@@ -15,26 +15,40 @@ const ActionBarDelete = ({
 }: ActionBarDeleteProps) => {
   return (
     <ActionBarRoot open={hasSelection}>
-      <ActionBarContent bg="white" borderWidth="1px" borderColor="indigo.100" borderRadius="xl" shadow="lg">
-        <ActionBarSelectionTrigger>
+      <ActionBarContent
+        bg="white"
+        borderWidth="1px"
+        borderColor="#E2E8F0"
+        borderRadius="10px"
+        boxShadow="0 4px 16px rgba(15,23,42,0.1)"
+      >
+        <ActionBarSelectionTrigger
+          fontSize="13px"
+          color="#475569"
+          fontWeight="500"
+        >
           {ids.length} selected
         </ActionBarSelectionTrigger>
         <ActionBarSeparator />
         <Button
           size="sm"
           colorPalette="red"
-          _hover={{ background: "red.400" }}
+          borderRadius="7px"
+          fontSize="13px"
+          fontWeight="600"
           onClick={() => setIsOpenModalAlert(true)}
         >
           Delete
         </Button>
         <Button
           size="sm"
-          colorPalette="blue"
-          _hover={{ background: "blue.400" }}
+          variant="ghost"
+          borderRadius="7px"
+          fontSize="13px"
+          color="#64748B"
           onClick={() => setIDs([])}
         >
-          Clear Selection
+          Clear
         </Button>
       </ActionBarContent>
     </ActionBarRoot>

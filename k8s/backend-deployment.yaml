@@ -7,7 +7,9 @@ metadata:
     app: backend
     app.kubernetes.io/part-of: findle
 spec:
-  replicas: 2
+  replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: backend
@@ -19,7 +21,7 @@ spec:
       initContainers:
         - name: db-migrate
           image: zimbakovtech/findle-backend:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["sh", "-c"]
           args:
             - |
@@ -65,7 +67,7 @@ spec:
       containers:
         - name: backend
           image: zimbakovtech/findle-backend:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
               name: http

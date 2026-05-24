@@ -5,8 +5,16 @@ on:
     tags:
       - "v*.*.*"
 
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
-  build-and-push:
+  build-push:
+    name: Build & Push Images
     runs-on: ubuntu-latest
 
     steps:
@@ -51,13 +59,32 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Image push summary
+        run: |
+          echo "## Images pushed — \`${{ steps.meta.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Tags |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| \`zimbakovtech/findle-backend\` | \`${{ steps.meta.outputs.tag }}\` · \`latest\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`zimbakovtech/findle-frontend\` | \`${{ steps.meta.outputs.tag }}\` · \`latest\` |" >> $GITHUB_STEP_SUMMARY
+
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build-push
+
+    steps:
+      - name: Extract version tag
+        id: meta
+        run: echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
       - name: Set up kubeconfig
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG_DATA }}" > ~/.kube/config
           chmod 600 ~/.kube/config
 
-      - name: Deploy to k3s cluster
+      - name: Roll out new images
         run: |
           kubectl set image deployment/backend \
             backend=zimbakovtech/findle-backend:${{ steps.meta.outputs.tag }} \
@@ -65,5 +92,20 @@ jobs:
           kubectl set image deployment/frontend \
             frontend=zimbakovtech/findle-frontend:${{ steps.meta.outputs.tag }} \
             -n findle
-          kubectl rollout status deployment/backend -n findle --timeout=300s
-          kubectl rollout status deployment/frontend -n findle --timeout=300s
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/backend -n findle --timeout=600s
+          kubectl rollout status deployment/frontend -n findle --timeout=600s
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "## Deployment — \`${{ steps.meta.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Cluster pod status:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -n findle 2>/dev/null >> $GITHUB_STEP_SUMMARY || echo "kubectl unavailable" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Live:** https://findle.zimbakov.dev" >> $GITHUB_STEP_SUMMARY

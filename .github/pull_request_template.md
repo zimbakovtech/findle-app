@@ -16,9 +16,3 @@
 
 - [ ] `npm run lint` — ESLint, 0 errors
 - [ ] `npm run build` — tsc + vite build succeeds
-
-### General
-
-- [ ] New backend endpoint → test added in `tests/routes/`
-- [ ] New DB column → Alembic migration generated and verified
-- [ ] No secrets or `.env` files committed

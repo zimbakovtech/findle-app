@@ -5,8 +5,16 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ci-frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   test-frontend:
+    name: Lint & Build
     runs-on: ubuntu-latest
 
     steps:
@@ -18,11 +26,11 @@ jobs:
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm ci
         working-directory: frontend
 
-      - name: Run Linter
+      - name: Run linter
         run: npm run lint
         working-directory: frontend
 
@@ -31,3 +39,14 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_URL: http://localhost:8000
+
+      - name: CI summary
+        if: always()
+        run: |
+          echo "## Frontend CI" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Detail |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ESLint | react-hooks, react-refresh, typescript-eslint |" >> $GITHUB_STEP_SUMMARY
+          echo "| Vite build | TypeScript + Vite 5, strict TS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Node | 20 |" >> $GITHUB_STEP_SUMMARY

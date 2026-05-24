@@ -5,8 +5,16 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   test-backend:
+    name: Lint, Type Check & Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -44,20 +52,22 @@ jobs:
         with:
           path: ~/.cache/pypoetry
           key: poetry-${{ matrix.python-version }}-${{ hashFiles('backend/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ matrix.python-version }}-
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: poetry install
         working-directory: backend
 
-      - name: Check Type Annotations
+      - name: Check type annotations
         run: poetry run mypy .
         working-directory: backend
 
-      - name: Run Code Linter
+      - name: Run linter
         run: poetry run task lint
         working-directory: backend
 
-      - name: Execute Unit Tests
+      - name: Run tests
         run: poetry run task test
         working-directory: backend
         env:
@@ -68,3 +78,15 @@ jobs:
           FIRST_SUPERUSER_USERNAME: admin
           FIRST_SUPERUSER_EMAIL: admin@test.com
           FIRST_SUPERUSER_PASSWORD: testpass
+
+      - name: CI summary
+        if: always()
+        run: |
+          echo "## Backend CI — Python ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Detail |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| mypy | strict mode, no implicit \`Any\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| ruff | lint rules: I, F, E, W, PL, PT |" >> $GITHUB_STEP_SUMMARY
+          echo "| pytest | 100% coverage required |" >> $GITHUB_STEP_SUMMARY
+          echo "| database | real PostgreSQL 16 (testcontainers pattern) |" >> $GITHUB_STEP_SUMMARY

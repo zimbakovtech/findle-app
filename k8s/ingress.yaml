@@ -10,10 +10,16 @@ metadata:
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - findle.zimbakov.dev
+      secretName: findle-tls
   rules:
-    - http:
+    - host: findle.zimbakov.dev
+      http:
         paths:
           - path: /api(/|$)(.*)
             pathType: ImplementationSpecific
@@ -30,10 +36,17 @@ metadata:
   namespace: findle
   labels:
     app.kubernetes.io/part-of: findle
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - findle.zimbakov.dev
+      secretName: findle-tls
   rules:
-    - http:
+    - host: findle.zimbakov.dev
+      http:
         paths:
           - path: /
             pathType: Prefix

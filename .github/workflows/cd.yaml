@@ -1,4 +1,4 @@
-name: Build & Push Images
+name: Build, Push & Deploy
 
 on:
   push:
@@ -51,16 +51,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Deployment to Linode server — configure later
-      # - name: Deploy to Linode
-      #   uses: appleboy/ssh-action@v1
-      #   with:
-      #     host: ${{ secrets.LINODE_HOST }}
-      #     username: ${{ secrets.LINODE_USER }}
-      #     key: ${{ secrets.LINODE_SSH_KEY }}
-      #     script: |
-      #       cd /opt/findle-app
-      #       IMAGE_TAG=${{ steps.meta.outputs.tag }} \
-      #         docker compose -f docker-compose.yaml -f docker-compose.prod.yaml pull
-      #       IMAGE_TAG=${{ steps.meta.outputs.tag }} \
-      #         docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_DATA }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Deploy to k3s cluster
+        run: |
+          kubectl set image deployment/backend \
+            backend=zimbakovtech/findle-backend:${{ steps.meta.outputs.tag }} \
+            -n findle
+          kubectl set image deployment/frontend \
+            frontend=zimbakovtech/findle-frontend:${{ steps.meta.outputs.tag }} \
+            -n findle
+          kubectl rollout status deployment/backend -n findle --timeout=120s
+          kubectl rollout status deployment/frontend -n findle --timeout=120s

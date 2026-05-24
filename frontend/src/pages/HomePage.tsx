@@ -5,8 +5,6 @@ import {
   Container,
   Flex,
   Text,
-  Button,
-  Link,
   SimpleGrid,
 } from "@chakra-ui/react";
 import { Toaster, toaster } from "@/components/ui/toaster";
@@ -17,8 +15,8 @@ import {
   LuUsers,
   LuSearch,
   LuArrowRight,
-  LuShoppingCart,
-  LuStar,
+  LuShieldCheck,
+  LuZap,
 } from "react-icons/lu";
 
 interface FeatureCardProps {
@@ -27,42 +25,43 @@ interface FeatureCardProps {
   description: string;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({
-  icon,
-  title,
-  description,
-}) => (
+const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) => (
   <Box
     bg="white"
-    borderRadius="xl"
+    borderRadius="12px"
     p={6}
-    boxShadow="0 1px 3px rgba(0,0,0,0.08)"
-    border="1px solid"
-    borderColor="indigo.100"
+    border="1px solid #E2E8F0"
     _hover={{
-      boxShadow: "0 4px 16px rgba(99,102,241,0.12)",
-      borderColor: "indigo.300",
+      borderColor: "#CBD5E1",
+      boxShadow: "0 4px 16px rgba(15,23,42,0.06)",
       transform: "translateY(-2px)",
     }}
     transition="all 200ms ease"
   >
     <Box
-      w={10}
-      h={10}
-      bg="indigo.50"
-      borderRadius="lg"
+      w={9}
+      h={9}
+      bg="#EFF6FF"
+      borderRadius="8px"
       display="flex"
       alignItems="center"
       justifyContent="center"
-      color="indigo.600"
+      color="#2563EB"
       mb={4}
     >
       {icon}
     </Box>
-    <Text fontWeight="600" fontSize="md" color="indigo.900" mb={2}>
+    <Text
+      fontFamily="'Plus Jakarta Sans', sans-serif"
+      fontWeight="700"
+      fontSize="15px"
+      color="#0F172A"
+      mb={1.5}
+      letterSpacing="-0.01em"
+    >
       {title}
     </Text>
-    <Text fontSize="sm" color="gray.500" lineHeight="1.6">
+    <Text fontSize="13px" color="#64748B" lineHeight="1.65">
       {description}
     </Text>
   </Box>
@@ -86,101 +85,149 @@ const HomePage: React.FC = () => {
   return (
     <>
       <Header />
-      <Flex direction="column" minHeight="calc(100dvh - 60px)">
+      <Flex direction="column" minHeight="calc(100dvh - 56px)">
         {/* Hero */}
         <Box
-          bg="linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #818CF8 100%)"
-          py={{ base: 16, sm: 24 }}
+          style={{
+            background: "linear-gradient(160deg, #0F172A 0%, #1E293B 60%, #0F172A 100%)",
+          }}
+          py={{ base: 20, sm: 28 }}
           px={4}
+          position="relative"
+          overflow="hidden"
         >
-          <Container maxW="900px" textAlign="center">
-            <Flex
-              align="center"
-              justify="center"
-              gap={3}
-              mb={5}
-            >
+          {/* Subtle blue glow */}
+          <Box
+            position="absolute"
+            top="30%"
+            left="50%"
+            transform="translate(-50%, -50%)"
+            w="600px"
+            h="400px"
+            style={{
+              background: "radial-gradient(ellipse at center, rgba(37,99,235,0.18) 0%, transparent 70%)",
+              pointerEvents: "none",
+            }}
+          />
+
+          <Container maxW="800px" textAlign="center" position="relative">
+            {/* Badge */}
+            <Flex justify="center" mb={6}>
               <Box
-                bg="whiteAlpha.200"
-                borderRadius="xl"
-                p={3}
+                display="inline-flex"
+                alignItems="center"
+                gap={1.5}
+                px={3}
+                py={1}
+                borderRadius="full"
+                border="1px solid rgba(37,99,235,0.4)"
+                style={{ backgroundColor: "rgba(37,99,235,0.1)" }}
               >
-                <LuBookOpen size={32} color="white" />
+                <LuBookOpen size={12} color="#60A5FA" />
+                <Text fontSize="12px" fontWeight="500" style={{ color: "#60A5FA" }}>
+                  Digital Book Catalog
+                </Text>
               </Box>
             </Flex>
+
             <Text
-              fontSize={{ base: "4xl", sm: "6xl" }}
+              fontFamily="'Plus Jakarta Sans', sans-serif"
+              fontSize={{ base: "42px", sm: "64px" }}
               fontWeight="800"
-              color="white"
-              letterSpacing="-0.03em"
-              lineHeight="1.1"
-              mb={4}
+              letterSpacing="-0.04em"
+              lineHeight="1.05"
+              mb={5}
             >
-              Findle
+              <span style={{ color: "#ffffff" }}>Manage your</span>
+              <br />
+              <span
+                style={{
+                  background: "linear-gradient(135deg, #60A5FA 0%, #38BDF8 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                book catalog
+              </span>
             </Text>
+
             <Text
-              fontSize={{ base: "lg", sm: "xl" }}
-              color="indigo.100"
+              fontSize={{ base: "15px", sm: "17px" }}
+              style={{ color: "rgba(148,163,184,1)" }}
               mb={8}
-              maxW="520px"
+              maxW="480px"
               mx="auto"
-              lineHeight="1.6"
+              lineHeight="1.65"
             >
-              Your digital book catalog — discover, organize, and track your
-              reading collection at FINKI.
+              Discover, organize, and track your reading collection at FINKI
+              with a clean, fast catalog tool.
             </Text>
-            <Flex
-              gap={3}
-              justify="center"
-              direction={{ base: "column", sm: "row" }}
-            >
+
+            <Flex gap={3} justify="center" direction={{ base: "column", sm: "row" }}>
               {isAuthenticated ? (
-                <Button
-                  asChild
-                  size="lg"
-                  bg="white"
-                  color="indigo.700"
-                  fontWeight="700"
-                  _hover={{ bg: "indigo.50" }}
-                  borderRadius="xl"
-                  px={8}
+                <a
+                  href="/dashboard"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "11px 22px",
+                    borderRadius: "10px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    color: "#ffffff",
+                    backgroundColor: "#2563EB",
+                    textDecoration: "none",
+                    transition: "background 150ms ease",
+                    letterSpacing: "-0.01em",
+                  }}
                 >
-                  <Link href="/dashboard" style={{ textDecoration: "none" }}>
-                    Go to Dashboard
-                    <LuArrowRight size={16} style={{ marginLeft: 8 }} />
-                  </Link>
-                </Button>
+                  Go to Dashboard
+                  <LuArrowRight size={15} />
+                </a>
               ) : (
                 <>
-                  <Button
-                    asChild
-                    size="lg"
-                    bg="white"
-                    color="indigo.700"
-                    fontWeight="700"
-                    _hover={{ bg: "indigo.50" }}
-                    borderRadius="xl"
-                    px={8}
+                  <a
+                    href="/signup"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "11px 22px",
+                      borderRadius: "10px",
+                      fontSize: "15px",
+                      fontWeight: 600,
+                      color: "#ffffff",
+                      backgroundColor: "#2563EB",
+                      textDecoration: "none",
+                      transition: "background 150ms ease",
+                      letterSpacing: "-0.01em",
+                    }}
                   >
-                    <Link href="/signup" style={{ textDecoration: "none" }}>
-                      Get Started Free
-                      <LuArrowRight size={16} style={{ marginLeft: 8 }} />
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    size="lg"
-                    variant="outline"
-                    color="white"
-                    borderColor="whiteAlpha.500"
-                    _hover={{ bg: "whiteAlpha.100", borderColor: "white" }}
-                    borderRadius="xl"
-                    px={8}
+                    Get started free
+                    <LuArrowRight size={15} />
+                  </a>
+                  <a
+                    href="/login"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "11px 22px",
+                      borderRadius: "10px",
+                      fontSize: "15px",
+                      fontWeight: 500,
+                      color: "rgba(148,163,184,1)",
+                      backgroundColor: "transparent",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      textDecoration: "none",
+                      transition: "all 150ms ease",
+                      letterSpacing: "-0.01em",
+                    }}
                   >
-                    <Link href="/login" style={{ textDecoration: "none" }}>
-                      Sign In
-                    </Link>
-                  </Button>
+                    Sign in
+                  </a>
                 </>
               )}
             </Flex>
@@ -188,56 +235,54 @@ const HomePage: React.FC = () => {
         </Box>
 
         {/* Features */}
-        <Box bg="#F5F3FF" py={16} px={4} flex={1}>
-          <Container maxW="1000px">
-            <Text
-              fontSize="2xl"
-              fontWeight="700"
-              color="indigo.900"
-              textAlign="center"
-              mb={2}
-              letterSpacing="-0.02em"
-            >
-              Everything you need
-            </Text>
-            <Text
-              fontSize="md"
-              color="gray.500"
-              textAlign="center"
-              mb={10}
-            >
-              Manage your book catalog with ease
-            </Text>
-            <SimpleGrid columns={{ base: 1, sm: 3 }} gap={6}>
+        <Box bg="#F8FAFC" py={{ base: 14, sm: 20 }} px={4} flex={1}>
+          <Container maxW="960px">
+            <Box textAlign="center" mb={10}>
+              <Text
+                fontFamily="'Plus Jakarta Sans', sans-serif"
+                fontSize={{ base: "24px", sm: "30px" }}
+                fontWeight="800"
+                color="#0F172A"
+                letterSpacing="-0.03em"
+                mb={2}
+              >
+                Everything you need
+              </Text>
+              <Text fontSize="15px" color="#64748B">
+                A complete toolkit to manage books and authors
+              </Text>
+            </Box>
+
+            <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} gap={5}>
               <FeatureCard
-                icon={<LuBookOpen size={20} />}
+                icon={<LuBookOpen size={18} />}
                 title="Book Catalog"
-                description="Add and organize books with title, author, year, and pricing in one place."
+                description="Add and organize books with title, author, year, and pricing all in one place."
               />
               <FeatureCard
-                icon={<LuUsers size={20} />}
+                icon={<LuUsers size={18} />}
                 title="Author Management"
-                description="Keep track of all authors in your catalog with quick search and bulk actions."
+                description="Track all authors with fast search and bulk delete operations."
               />
               <FeatureCard
-                icon={<LuSearch size={20} />}
-                title="Fast Search"
-                description="Instantly search across your entire collection by title or author name."
+                icon={<LuSearch size={18} />}
+                title="Instant Search"
+                description="Search across your entire collection by title or author name in real time."
               />
               <FeatureCard
-                icon={<LuShoppingCart size={20} />}
-                title="Book Pricing"
-                description="Set and display prices for books — ready for a storefront or inventory system."
+                icon={<LuShieldCheck size={18} />}
+                title="JWT Auth"
+                description="Secure JWT-based authentication with protected routes and token management."
               />
               <FeatureCard
-                icon={<LuStar size={20} />}
-                title="FINKI Project"
-                description="Built as a college CI/CD project at FINKI — modern stack, production-ready."
+                icon={<LuZap size={18} />}
+                title="FastAPI Backend"
+                description="Async FastAPI backend with SQLAlchemy, Alembic migrations, and full CRUD."
               />
               <FeatureCard
-                icon={<LuArrowRight size={20} />}
-                title="REST API"
-                description="Full FastAPI backend with async SQLAlchemy, Alembic migrations, and JWT auth."
+                icon={<LuArrowRight size={18} />}
+                title="CI/CD Pipeline"
+                description="Full GitHub Actions CI/CD — lint, test, Docker build, and tag-triggered deploys."
               />
             </SimpleGrid>
           </Container>

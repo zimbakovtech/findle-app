@@ -10,7 +10,7 @@ services:
     command: npm run dev
 
   backend:
-    restart: "no"
+    restart: unless-stopped
     volumes:
       - ./backend:/app
     environment:

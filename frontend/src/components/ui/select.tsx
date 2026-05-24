@@ -52,10 +52,10 @@ export const SelectContent = React.forwardRef<
   HTMLDivElement,
   SelectContentProps
 >(function SelectContent(props, ref) {
-  const { portalled = true, portalRef, ...rest } = props;
+  const { portalled = true, portalRef, zIndex, ...rest } = props;
   return (
     <Portal disabled={!portalled} container={portalRef}>
-      <ChakraSelect.Positioner>
+      <ChakraSelect.Positioner zIndex={zIndex}>
         <ChakraSelect.Content {...rest} ref={ref} />
       </ChakraSelect.Positioner>
     </Portal>

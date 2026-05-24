@@ -206,6 +206,7 @@ const BooksTable: React.FC<BooksTableProps> = ({
           placement="center"
           motionPreset="slide-in-bottom"
           open={isDialogOpen}
+          closeOnInteractOutside={false}
           onOpenChange={(e) => {
             setIsDialogOpen(e.open);
             if (!e.open) reset({ authorList: [], title: "", year: "", price: "" });

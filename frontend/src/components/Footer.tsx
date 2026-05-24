@@ -49,9 +49,14 @@ export default function Footer() {
 
         <Text fontSize="xs" style={{ color: "rgba(100,116,139,1)" }}>
           Built by{" "}
-          <span style={{ color: "rgba(148,163,184,1)", fontWeight: 500 }}>
+          <a
+            href="https://zimbakov.dev/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "rgba(148,163,184,1)", fontWeight: 500, textDecoration: "none" }}
+          >
             Damjan Zimbakov
-          </span>
+          </a>
         </Text>
       </Flex>
     </Box>

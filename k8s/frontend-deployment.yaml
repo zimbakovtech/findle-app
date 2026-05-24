@@ -19,7 +19,7 @@ spec:
       containers:
         - name: frontend
           image: zimbakovtech/findle-frontend:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
               name: http

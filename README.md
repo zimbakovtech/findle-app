@@ -1,36 +1,55 @@
-# Findle - Digital Book Catalog
+# Findle — Digital Book Catalog
 
 > A production-style full-stack application built for the **CI/CD course** at FINKI (Faculty of Computer Science and Engineering, Ss. Cyril and Methodius University).
 > **Author:** Damjan Zimbakov
 
-![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
-![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)
+<div align="center">
+
+[![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/features/actions)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat-square&logo=kubernetes&logoColor=white)](https://kubernetes.io)
+
+**[Live Demo →](https://findle.zimbakov.dev)** *(Civo managed k3s)*
+
+</div>
 
 ---
 
-## What is Findle?
+## Table of Contents
+
+- [Overview](#overview)
+- [Tech Stack](#tech-stack)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Running Locally](#running-locally)
+- [Backend Development](#backend-development)
+- [CI/CD Pipeline](#cicd-pipeline)
+- [Kubernetes Deployment](#kubernetes-deployment)
+- [Git Workflow](#git-workflow)
+- [License](#license)
+
+---
+
+## Overview
 
 **Findle** (FINKI + Kindle) is a digital book catalog web application. Users can browse books, manage authors, track prices, and simulate purchases — all backed by a secure REST API with JWT authentication.
 
 The project demonstrates a complete CI/CD workflow: containerized services, automated testing with 100% coverage enforcement, strict linting and type-checking gates, GitHub Actions pipelines for CI and CD, tag-triggered Docker image releases to DockerHub, and Kubernetes manifests deployed to a live managed cluster.
-
-**Live deployment:** [https://findle.zimbakov.dev](https://findle.zimbakov.dev) *(Civo managed k3s)*
 
 ---
 
 ## Tech Stack
 
 | Layer | Technology |
-|---|---|
-| Backend | FastAPI (async), SQLAlchemy 2.0 async, PostgreSQL 16, Alembic, Pydantic v2, PyJWT, Argon2 |
-| Frontend | React 18, TypeScript, Vite 5, Chakra UI v3, React Hook Form, Zod, Axios |
-| Infrastructure | Docker, Docker Compose, Nginx, GitHub Actions, DockerHub, Kubernetes (k3s on Civo) |
-| Code Quality | Ruff 0.8.4 (lint + format), mypy strict, pre-commit hooks, pytest-cov 100% |
+| :--- | :--- |
+| **Backend** | FastAPI (async), SQLAlchemy 2.0 async, PostgreSQL 16, Alembic, Pydantic v2, PyJWT, Argon2 |
+| **Frontend** | React 18, TypeScript, Vite 5, Chakra UI v3, React Hook Form, Zod, Axios |
+| **Infrastructure** | Docker, Docker Compose, Nginx, GitHub Actions, DockerHub, Kubernetes (k3s on Civo) |
+| **Code Quality** | Ruff 0.8.4 (lint + format), mypy strict, pre-commit hooks, pytest-cov 100% |
 
 ---
 
@@ -52,7 +71,7 @@ docker compose up --build
 Open [http://localhost:3000](http://localhost:3000). Default credentials are in `backend/.env`.
 
 | Service | URL |
-|---|---|
+| :--- | :--- |
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:8000 |
 | API Docs | http://localhost:8000/docs |
@@ -65,9 +84,9 @@ Open [http://localhost:3000](http://localhost:3000). Default credentials are in 
 ```
 findle-app/
 ├── .github/workflows/
-│   ├── ci-backend.yaml       # mypy + ruff lint + pytest (Python 3.12)
-│   ├── ci-frontend.yaml      # ESLint + Vite build
-│   └── cd.yaml               # Tag-triggered: build + push to DockerHub → deploy to k3s
+│   ├── ci-backend.yaml           # mypy + ruff lint + pytest (Python 3.12)
+│   ├── ci-frontend.yaml          # ESLint + Vite build
+│   └── cd.yaml                   # Tag-triggered: build + push to DockerHub → deploy to k3s
 ├── k8s/
 │   ├── namespace.yaml
 │   ├── postgres-configmap.yaml
@@ -81,21 +100,20 @@ findle-app/
 │   ├── frontend-service.yaml
 │   ├── ingress.yaml
 │   ├── cluster-issuer.yaml       # cert-manager ClusterIssuer (Let's Encrypt)
-│   ├── secrets.env.example       # Template (commit)
+│   ├── secrets.env.example       # Template (committed)
 │   ├── secrets.env               # Real values (gitignored)
 │   └── apply-secrets.sh          # Creates K8s Secrets from secrets.env
 ├── backend/
 │   ├── Dockerfile
-│   ├── .dockerignore
 │   ├── pyproject.toml
 │   ├── .env.example
 │   ├── scripts/
-│   │   ├── init_db.sh          # Prod: migrations → seed → uvicorn
-│   │   └── init_db_dev.sh      # Dev: full DB reset → seed
+│   │   ├── init_db.sh            # Prod: migrations → seed → uvicorn
+│   │   └── init_db_dev.sh        # Dev: full DB reset → seed
 │   └── src/
-│       ├── api/                # FastAPI routers + dependencies
-│       ├── core/               # Settings, security, DB engine
-│       ├── migrations/         # Alembic versions
+│       ├── api/                  # FastAPI routers + dependencies
+│       ├── core/                 # Settings, security, DB engine
+│       ├── migrations/           # Alembic versions
 │       ├── models.py
 │       ├── schemas/
 │       └── services/
@@ -127,7 +145,7 @@ findle-app/
 docker compose up --build
 ```
 
-### Production simulation (pull DockerHub images)
+### Production Simulation (pull DockerHub images)
 
 ```bash
 IMAGE_TAG=v1.0.0 docker compose \
@@ -153,7 +171,7 @@ poetry run task format    # ruff fix + ruff format
 ### Code Quality Rules
 
 | Tool | Config | Enforces |
-|---|---|---|
+| :--- | :--- | :--- |
 | **Ruff** 0.8.4 | `pyproject.toml` | Line length 79, rules: I, F, E, W, PL, PT, preview mode |
 | **mypy** | `pyproject.toml` | Strict mode — all types required, no implicit `Any` |
 | **pytest-cov** | `pyproject.toml` | 100% coverage (`--cov-fail-under=100`) |
@@ -163,16 +181,16 @@ poetry run task format    # ruff fix + ruff format
 
 ## CI/CD Pipeline
 
-### CI — every PR to `main`
+### CI — Every PR to `main`
 
 | Workflow | Trigger | Steps |
-|---|---|---|
-| Backend CI | PR → `main` | mypy → ruff lint → pytest (100% coverage) against real PostgreSQL 16 |
-| Frontend CI | PR → `main` | ESLint → Vite build (TypeScript strict) |
+| :--- | :--- | :--- |
+| **Backend CI** | PR → `main` | mypy → ruff lint → pytest (100% coverage) against real PostgreSQL 16 |
+| **Frontend CI** | PR → `main` | ESLint → Vite build (TypeScript strict) |
 
 Both workflows use dependency caching and write a summary to the GitHub Actions job page.
 
-### CD — version tag push
+### CD — Version Tag Push
 
 ```bash
 git tag v1.2.3
@@ -188,7 +206,7 @@ Triggers `.github/workflows/cd.yaml` — two jobs run in sequence:
 4. Build `zimbakovtech/findle-frontend` for `linux/amd64` with `VITE_API_URL` build arg
 5. Push both images tagged `v1.2.3` and `latest`
 
-**Job 2: `deploy`** *(depends on build-push)*
+**Job 2: `deploy`** *(depends on `build-push`)*
 1. Load kubeconfig from `KUBECONFIG_DATA` secret
 2. `kubectl set image` on both deployments
 3. `kubectl rollout status` with 600s timeout
@@ -197,7 +215,7 @@ Triggers `.github/workflows/cd.yaml` — two jobs run in sequence:
 ### Required GitHub Secrets
 
 | Secret | Purpose |
-|---|---|
+| :--- | :--- |
 | `DOCKERHUB_USERNAME` | DockerHub account (`zimbakovtech`) |
 | `DOCKERHUB_TOKEN` | DockerHub access token |
 | `VITE_API_URL` | Production backend URL (injected at frontend build time) |
@@ -212,7 +230,7 @@ All manifests live in `k8s/`. All resources run in the `findle` namespace on a C
 ### Manifest Overview
 
 | File | Resource | Description |
-|---|---|---|
+| :--- | :--- | :--- |
 | `namespace.yaml` | Namespace | `findle` — isolates all resources |
 | `postgres-configmap.yaml` | ConfigMap | Postgres DB name and user (non-sensitive) |
 | `postgres-statefulset.yaml` | StatefulSet | PostgreSQL 16, 1 replica, 1Gi PVC, `pg_isready` probes |
@@ -229,7 +247,7 @@ All manifests live in `k8s/`. All resources run in the `findle` namespace on a C
 | `secrets.env` | Local only | **Gitignored.** Contains real passwords + `SECRET_KEY` |
 | `apply-secrets.sh` | Script | Reads `secrets.env` → creates `postgres-secret` + `backend-secret` via `kubectl` |
 
-**Secrets are never stored in YAML in the repo.** They are created from a local gitignored `secrets.env` via a script.
+> **Secrets are never stored in YAML in the repo.** They are created from a local gitignored `secrets.env` via a script.
 
 ### Architecture
 
@@ -356,21 +374,23 @@ k3d cluster delete findle
 
 ### Key Design Decisions
 
-- **Init container** runs `alembic upgrade head` + superuser creation before the API starts — prevents race conditions on first deploy.
-- **`Recreate` strategy** on the backend Deployment — avoids a memory spike from running two backend pods simultaneously on a single-node cluster during rolling updates.
-- **StatefulSet** for Postgres with `volumeClaimTemplate` — stable pod identity and persistent storage via PVC, surviving restarts.
-- **Two Ingress resources** — `rewrite-target` applies to all rules in an Ingress, so backend (with `/api` strip) and frontend (no rewrite) must be separate to avoid mangling SPA asset paths.
-- **`ROOT_PATH=/api`** tells FastAPI it sits behind `/api`, so generated OpenAPI URLs and Swagger UI fetches use the correct prefix.
-- **`VITE_API_URL=/api`** is baked into the frontend image at build time as a relative path — API calls go through the same ingress, no hardcoded hostnames.
-- **Secrets workflow** — `secrets.env` (gitignored) → `apply-secrets.sh` → `kubectl create secret --dry-run | kubectl apply`. No base64 in repo, idempotent re-runs.
-- **TLS** via cert-manager + Let's Encrypt ACME HTTP-01 challenge, auto-renewed.
+| Decision | Rationale |
+| :--- | :--- |
+| **Init container** for migrations | Runs `alembic upgrade head` + superuser creation before the API starts — prevents race conditions on first deploy |
+| **`Recreate` strategy** on backend | Avoids memory spike from two backend pods running simultaneously on a single-node cluster during rolling updates |
+| **StatefulSet** for Postgres | Stable pod identity and persistent storage via PVC, surviving restarts |
+| **Two Ingress resources** | `rewrite-target` applies to all rules in an Ingress; backend (`/api` strip) and frontend (no rewrite) must be separate to avoid mangling SPA asset paths |
+| **`ROOT_PATH=/api`** | Tells FastAPI it sits behind `/api`, so generated OpenAPI URLs and Swagger UI fetches use the correct prefix |
+| **`VITE_API_URL=/api`** | Baked into the frontend image at build time as a relative path — API calls go through the same ingress, no hardcoded hostnames |
+| **Secrets workflow** | `secrets.env` (gitignored) → `apply-secrets.sh` → `kubectl create secret --dry-run \| kubectl apply`. No base64 in repo, idempotent re-runs |
+| **TLS** via cert-manager | Let's Encrypt ACME HTTP-01 challenge, auto-renewed |
 
 ---
 
 ## Git Workflow
 
 | Branch | Purpose |
-|---|---|
+| :--- | :--- |
 | `main` | Production-ready. Protected. Only receives merges from `develop`. |
 | `develop` | Integration. All features merge here first. |
 | `feat/<name>` | Feature branches — squash-merge into `develop`. |
@@ -389,9 +409,12 @@ See [GIT_WORKFLOW.md](GIT_WORKFLOW.md) for full details.
 
 ## License
 
-This project is licensed under the MIT License.  
-See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
+<div align="center">
+
 *© 2026 Damjan Zimbakov — FINKI CI/CD Course*
+
+</div>

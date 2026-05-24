@@ -1,5 +1,12 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Text, Box, Flex, Container, Center, Badge } from "@chakra-ui/react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Text,
+  Box,
+  Flex,
+  Container,
+  Center,
+  Badge,
+} from "@chakra-ui/react";
 import { Tabs } from "@chakra-ui/react";
 import { LuUsers, LuBookOpen, LuUser } from "react-icons/lu";
 import { Toaster, toaster } from "@/components/ui/toaster";
@@ -20,34 +27,38 @@ import Footer from "@/components/Footer";
 
 const Dashboard: React.FC = () => {
   const { getCurrentUser } = useUsersService();
-  const [currentUser, setCurrentUser] = useState<GetCurrentUserDto | null>();
+  const [currentUser, setCurrentUser] = useState<GetCurrentUserDto | null>(null);
 
   const { getAuthors } = useAuthorsService();
   const [authors, setAuthors] = useState<AuthorResponseDto[]>([]);
-  const [authorsTotalResults, setAuthorsTotalResults] = useState<number>(1);
+  const [authorsTotalResults, setAuthorsTotalResults] = useState<number>(0);
   const [authorsSearchQuery, setAuthorsSearchQuery] = useState("");
   const [authorsCurrentPage, setAuthorsCurrentPage] = useState<number>(1);
 
   const { getBooks } = useBooksService();
   const [books, setBooks] = useState<BookResponseDto[]>([]);
-  const [booksTotalResults, setBooksTotalResults] = useState<number>(1);
+  const [booksTotalResults, setBooksTotalResults] = useState<number>(0);
   const [booksSearchQuery, setBooksSearchQuery] = useState("");
   const [booksCurrentPage, setBooksCurrentPage] = useState<number>(1);
 
   const [tab, setTab] = useState<TabProps>({ value: "books" });
-  const [isLoading, setIsLoading] = useState(false);
+
+  // Use refs to guard concurrent fetches without causing dep-loop
+  const authorsLoadingRef = useRef(false);
+  const booksLoadingRef = useRef(false);
+
   const pageSize = 20;
 
   const authorsPageProps: PageProps = {
     totalResults: authorsTotalResults,
-    pageSize: pageSize,
+    pageSize,
     currentPage: authorsCurrentPage,
     setCurrentPage: setAuthorsCurrentPage,
   };
 
   const booksPageProps: PageProps = {
     totalResults: booksTotalResults,
-    pageSize: pageSize,
+    pageSize,
     currentPage: booksCurrentPage,
     setCurrentPage: setBooksCurrentPage,
   };
@@ -57,58 +68,47 @@ const Dashboard: React.FC = () => {
     if (response.data && response.success) {
       setCurrentUser(response.data);
     } else {
-      toaster.create({
-        title: getErrorDetail(response.error),
-        type: "error",
-      });
+      toaster.create({ title: getErrorDetail(response.error), type: "error" });
     }
   }, [getCurrentUser]);
 
   const fetchAuthors = useCallback(async (): Promise<void> => {
-    if (isLoading) return;
-    setIsLoading(true);
+    if (authorsLoadingRef.current) return;
+    authorsLoadingRef.current = true;
     const offset = (authorsCurrentPage - 1) * pageSize;
-
     const response = await getAuthors({
       limit: pageSize,
-      offset: offset,
+      offset,
       ...(authorsSearchQuery && { name: authorsSearchQuery }),
     });
     if (response.data && response.success) {
       setAuthors(response.data.authors);
       setAuthorsTotalResults(response.data.total_results);
     } else {
-      toaster.create({
-        title: getErrorDetail(response.error),
-        type: "error",
-      });
+      toaster.create({ title: getErrorDetail(response.error), type: "error" });
       setAuthors([]);
     }
-    setIsLoading(false);
-  }, [isLoading, authorsCurrentPage, pageSize, authorsSearchQuery, getAuthors]);
+    authorsLoadingRef.current = false;
+  }, [authorsCurrentPage, authorsSearchQuery, getAuthors]);
 
   const fetchBooks = useCallback(async (): Promise<void> => {
-    if (isLoading) return;
-    setIsLoading(true);
+    if (booksLoadingRef.current) return;
+    booksLoadingRef.current = true;
     const offset = (booksCurrentPage - 1) * pageSize;
-
     const response = await getBooks({
       limit: pageSize,
-      offset: offset,
+      offset,
       ...(booksSearchQuery && { title: booksSearchQuery }),
     });
     if (response.data && response.success) {
       setBooks(response.data.books);
       setBooksTotalResults(response.data.total_results);
     } else {
-      toaster.create({
-        title: getErrorDetail(response.error),
-        type: "error",
-      });
+      toaster.create({ title: getErrorDetail(response.error), type: "error" });
       setBooks([]);
     }
-    setIsLoading(false);
-  }, [isLoading, booksCurrentPage, pageSize, booksSearchQuery, getBooks]);
+    booksLoadingRef.current = false;
+  }, [booksCurrentPage, booksSearchQuery, getBooks]);
 
   useEffect(() => {
     getCurrentUserInfo();
@@ -134,7 +134,12 @@ const Dashboard: React.FC = () => {
   return (
     <>
       <Header />
-      <Flex direction="column" justifyContent="space-between" minHeight="calc(100dvh - 60px)">
+      <Flex
+        direction="column"
+        justifyContent="space-between"
+        minHeight="calc(100dvh - 56px)"
+        style={{ backgroundColor: "#F8FAFC" }}
+      >
         <Container maxW="1200px" py={6}>
           {/* User info bar */}
           <Flex
@@ -142,48 +147,56 @@ const Dashboard: React.FC = () => {
             gap={3}
             mb={6}
             bg="white"
-            border="1px solid"
-            borderColor="indigo.100"
-            borderRadius="xl"
+            border="1px solid #E2E8F0"
+            borderRadius="12px"
             px={4}
             py={3}
           >
             <Box
-              w={9}
-              h={9}
-              bg="indigo.100"
+              w={8}
+              h={8}
+              bg="#EFF6FF"
               borderRadius="full"
               display="flex"
               alignItems="center"
               justifyContent="center"
-              color="indigo.600"
+              color="#2563EB"
               flexShrink={0}
             >
-              <LuUser size={16} />
+              <LuUser size={15} />
             </Box>
             {currentUser ? (
               <Flex align="center" gap={2} flexWrap="wrap">
-                <Text fontWeight="600" color="indigo.900" fontSize="sm">
+                <Text
+                  fontFamily="'Plus Jakarta Sans', sans-serif"
+                  fontWeight="700"
+                  color="#0F172A"
+                  fontSize="14px"
+                  letterSpacing="-0.01em"
+                >
                   {currentUser.username}
                 </Text>
-                <Text color="gray.400" fontSize="xs">
+                <Text color="#94A3B8" fontSize="13px">
                   {currentUser.email}
                 </Text>
                 {currentUser.is_superuser && (
                   <Badge
-                    bg="indigo.100"
-                    color="indigo.700"
-                    fontSize="xs"
+                    bg="#EFF6FF"
+                    color="#1D4ED8"
+                    fontSize="11px"
+                    fontWeight="600"
                     borderRadius="full"
                     px={2}
+                    py={0.5}
+                    letterSpacing="0.02em"
                   >
                     Admin
                   </Badge>
                 )}
               </Flex>
             ) : (
-              <Text fontSize="sm" color="gray.400">
-                Loading...
+              <Text fontSize="13px" color="#94A3B8">
+                Loading…
               </Text>
             )}
           </Flex>
@@ -193,66 +206,70 @@ const Dashboard: React.FC = () => {
             <Flex
               align={{ base: "flex-start", sm: "center" }}
               justify="space-between"
-              mb={6}
+              mb={5}
               direction={{ base: "column", sm: "row" }}
               gap={3}
             >
               <Box>
                 <Text
+                  fontFamily="'Plus Jakarta Sans', sans-serif"
                   fontWeight="800"
-                  fontSize="2xl"
-                  color="indigo.900"
-                  letterSpacing="-0.02em"
+                  fontSize="22px"
+                  color="#0F172A"
+                  letterSpacing="-0.03em"
+                  lineHeight="1.2"
                 >
                   Dashboard
                 </Text>
-                <Text fontSize="sm" color="gray.500">
+                <Text fontSize="13px" color="#64748B" mt={0.5}>
                   Manage your book catalog and authors
                 </Text>
               </Box>
 
-              <Tabs.Root
-                value={tab.value}
-                onValueChange={(e) => changeTabView(e)}
-              >
+              <Tabs.Root value={tab.value} onValueChange={(e) => changeTabView(e)}>
                 <Tabs.List
-                  bg="indigo.50"
-                  borderRadius="xl"
-                  p={1}
+                  bg="#F1F5F9"
+                  borderRadius="10px"
+                  p="3px"
                   border="none"
+                  gap={0}
                 >
                   <Tabs.Trigger
                     value="books"
-                    borderRadius="lg"
+                    borderRadius="8px"
                     fontWeight="500"
-                    color="gray.500"
-                    _selected={{
-                      color: "indigo.700",
-                      bg: "white",
-                      fontWeight: "600",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                    }}
+                    fontSize="13px"
+                    color="#64748B"
                     px={4}
                     py={2}
+                    gap={1.5}
+                    _selected={{
+                      color: "#0F172A",
+                      bg: "white",
+                      fontWeight: "600",
+                      boxShadow: "0 1px 3px rgba(15,23,42,0.08)",
+                    }}
                   >
-                    <LuBookOpen size={14} />
+                    <LuBookOpen size={13} />
                     Books
                   </Tabs.Trigger>
                   <Tabs.Trigger
                     value="authors"
-                    borderRadius="lg"
+                    borderRadius="8px"
                     fontWeight="500"
-                    color="gray.500"
-                    _selected={{
-                      color: "indigo.700",
-                      bg: "white",
-                      fontWeight: "600",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                    }}
+                    fontSize="13px"
+                    color="#64748B"
                     px={4}
                     py={2}
+                    gap={1.5}
+                    _selected={{
+                      color: "#0F172A",
+                      bg: "white",
+                      fontWeight: "600",
+                      boxShadow: "0 1px 3px rgba(15,23,42,0.08)",
+                    }}
                   >
-                    <LuUsers size={14} />
+                    <LuUsers size={13} />
                     Authors
                   </Tabs.Trigger>
                 </Tabs.List>

@@ -5,7 +5,6 @@ import {
   PaginationRoot,
 } from "@/components/ui/pagination";
 import { HStack } from "@chakra-ui/react";
-
 import { PageProps } from "@/pages/dashboard/Types";
 
 const Pagination: React.FC<PageProps> = (pageProps) => {
@@ -17,11 +16,9 @@ const Pagination: React.FC<PageProps> = (pageProps) => {
       pageSize={pageSize}
       defaultPage={1}
       page={currentPage}
-      onPageChange={(e) => {
-        setCurrentPage(e.page);
-      }}
+      onPageChange={(e) => setCurrentPage(e.page)}
     >
-      <HStack style={{ color: "#3730A3" }}>
+      <HStack style={{ color: "#1D4ED8" }} fontSize="13px">
         <PaginationPrevTrigger />
         <PaginationItems />
         <PaginationNextTrigger />

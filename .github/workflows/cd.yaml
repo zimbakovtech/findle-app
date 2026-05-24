@@ -65,5 +65,5 @@ jobs:
           kubectl set image deployment/frontend \
             frontend=zimbakovtech/findle-frontend:${{ steps.meta.outputs.tag }} \
             -n findle
-          kubectl rollout status deployment/backend -n findle --timeout=120s
-          kubectl rollout status deployment/frontend -n findle --timeout=120s
+          kubectl rollout status deployment/backend -n findle --timeout=300s
+          kubectl rollout status deployment/frontend -n findle --timeout=300s

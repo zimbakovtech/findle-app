@@ -7,7 +7,7 @@ metadata:
     app: mongodb
     app.kubernetes.io/part-of: findle
 spec:
-  backoffLimit: 10
+  backoffLimit: 20
   template:
     metadata:
       labels:
@@ -22,38 +22,59 @@ spec:
             - -c
             - |
               set -e
+              PRIMARY="mongodb-0.mongodb.findle.svc.cluster.local:27017"
 
               echo "Waiting for mongodb-0 to accept connections..."
-              until mongosh --host mongodb-0.mongodb.findle.svc.cluster.local:27017 \
-                    --quiet --eval "db.adminCommand('ping').ok" >/dev/null 2>&1; do
+              until mongosh --host "$PRIMARY" --quiet \
+                    --eval "db.adminCommand('ping').ok" >/dev/null 2>&1; do
                 echo "  ...not ready yet, retrying in 5s"
                 sleep 5
               done
 
-              echo "Initiating replica set rs0 (idempotent)..."
-              mongosh --host mongodb-0.mongodb.findle.svc.cluster.local:27017 --quiet <<'EOF'
+              # Initiate the replica set with ONLY mongodb-0. A single-member
+              # initiate always passes the quorum check (no DNS dependency on
+              # the not-yet-created pods) and elects mongodb-0 PRIMARY at once.
+              echo "Initiating replica set rs0 (single member, idempotent)..."
+              mongosh --host "$PRIMARY" --quiet <<EOF
               try {
                 rs.status();
                 print("Replica set already initialised.");
               } catch (e) {
                 rs.initiate({
                   _id: "rs0",
-                  members: [
-                    { _id: 0, host: "mongodb-0.mongodb.findle.svc.cluster.local:27017" },
-                    { _id: 1, host: "mongodb-1.mongodb.findle.svc.cluster.local:27017" },
-                    { _id: 2, host: "mongodb-2.mongodb.findle.svc.cluster.local:27017" }
-                  ]
+                  members: [{ _id: 0, host: "$PRIMARY" }]
                 });
-                print("Replica set initiated.");
+                print("Replica set initiated with mongodb-0.");
               }
               EOF
 
-              echo "Waiting for a PRIMARY to be elected..."
-              until mongosh --host mongodb-0.mongodb.findle.svc.cluster.local:27017 \
-                    --quiet --eval "db.hello().isWritablePrimary || db.hello().secondary" \
-                    | grep -q true; do
-                echo "  ...no primary yet, retrying in 5s"
-                sleep 5
+              echo "Waiting for mongodb-0 to become PRIMARY..."
+              until mongosh --host "$PRIMARY" --quiet \
+                    --eval "db.hello().isWritablePrimary" | grep -q true; do
+                echo "  ...no primary yet, retrying in 3s"
+                sleep 3
+              done
+              echo "mongodb-0 is PRIMARY."
+
+              # Add the remaining members once their pods exist and answer.
+              # rs.add is idempotent — skip if the host is already in the config.
+              for i in 1 2; do
+                MEMBER="mongodb-$i.mongodb.findle.svc.cluster.local:27017"
+                echo "Waiting for $MEMBER to accept connections..."
+                until mongosh --host "$MEMBER" --quiet \
+                      --eval "db.adminCommand('ping').ok" >/dev/null 2>&1; do
+                  echo "  ...$MEMBER not ready yet, retrying in 5s"
+                  sleep 5
+                done
+                echo "Adding $MEMBER to the replica set (idempotent)..."
+                mongosh --host "$PRIMARY" --quiet --eval "
+                  if (!rs.conf().members.some(m => m.host === '$MEMBER')) {
+                    rs.add('$MEMBER');
+                    print('Added $MEMBER.');
+                  } else {
+                    print('$MEMBER already a member.');
+                  }
+                "
               done
 
-              echo "Replica set rs0 is ready."
+              echo "Replica set rs0 ready with all reachable members."

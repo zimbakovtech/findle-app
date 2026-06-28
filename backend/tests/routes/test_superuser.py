@@ -3,21 +3,24 @@ from typing import Callable
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.database import Database
 from src.models import User
 from src.services import user_service
-from tests.conftest import MockedUser, UserFactory
+from tests.conftest import MockedUser, UserFactory, insert_users
+
+pytestmark = pytest.mark.anyio
 
 
 async def test_get_all_users(
     async_client: AsyncClient,
-    async_session: AsyncSession,
+    async_session: Database,
     superuser_token: str,
 ) -> None:
     expected_length = 5
-    async_session.add_all(UserFactory.create_batch(expected_length))
-    await async_session.commit()
+    await insert_users(
+        async_session, UserFactory.create_batch(expected_length)
+    )
 
     response = await async_client.get(
         '/superuser/all',
@@ -30,10 +33,11 @@ async def test_get_all_users(
 
 
 async def test_get_all_users_access_denied_if_not_superuser(
-    async_client: AsyncClient, async_session: AsyncSession, user_token: str
+    async_client: AsyncClient,
+    async_session: Database,
+    user_token: str,
 ) -> None:
-    async_session.add_all(UserFactory.create_batch(5))
-    await async_session.commit()
+    await insert_users(async_session, UserFactory.create_batch(5))
 
     response = await async_client.get(
         '/superuser/all',
@@ -267,7 +271,7 @@ async def test_update_user_info_denied_if_not_superuser(
 
 async def test_delete_user(
     async_client: AsyncClient,
-    async_session: AsyncSession,
+    async_session: Database,
     superuser_token: str,
     user: MockedUser,
 ) -> None:

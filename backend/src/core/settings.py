@@ -6,7 +6,8 @@ class Settings(BaseSettings):
         env_file='.env', env_file_encoding='utf-8', extra='forbid'
     )
 
-    DATABASE_URL: str = 'sqlite+aiosqlite:///./dev.db'
+    MONGODB_URL: str = 'mongodb://localhost:27017'
+    MONGODB_DB: str = 'findle_db'
 
     SECRET_KEY: str = 'your-secret-key'
     ALGORITHM: str = 'HS256'

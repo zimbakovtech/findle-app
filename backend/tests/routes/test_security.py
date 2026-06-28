@@ -1,10 +1,13 @@
 from http import HTTPStatus
 
+import pytest
 from httpx import AsyncClient
 from jwt import decode
 
 from src.core.security import create_access_token
 from src.core.settings import settings
+
+pytestmark = pytest.mark.anyio
 
 
 def test_jwt() -> None:

@@ -1,9 +1,10 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.dependencies import CurrentUser, SessionDep, get_current_user
+from src.models import Author
 from src.schemas.base import Message
 from src.schemas.books import (
     BookList,
@@ -53,7 +54,7 @@ async def add_book(session: SessionDep, book_in: BookSchema) -> Any:
     new_book = await book_service.add_book(session=session, book=book_in)
 
     return BookResponseCreate(
-        **new_book.to_dict(), author=new_book.author.name
+        **new_book.to_dict(), author=cast(Author, new_book.author).name
     )
 
 
@@ -71,7 +72,9 @@ async def get_book_by_id(book_id: int, session: SessionDep) -> Any:
             status_code=HTTPStatus.NOT_FOUND, detail='Book not found.'
         )
 
-    return BookPublic(**book_db.to_dict(), author=book_db.author.name)
+    return BookPublic(
+        **book_db.to_dict(), author=cast(Author, book_db.author).name
+    )
 
 
 @router.get('', response_model=BookList)
@@ -94,7 +97,8 @@ async def get_books_like(
     )
 
     book_list = [
-        BookPublic(**book.to_dict(), author=book.author.name) for book in books
+        BookPublic(**book.to_dict(), author=cast(Author, book.author).name)
+        for book in books
     ]
 
     return {'books': book_list, 'total_results': total_results}
@@ -121,7 +125,7 @@ async def update_book(
     )
 
     return BookPublic(
-        **book_updated.to_dict(), author=book_updated.author.name
+        **book_updated.to_dict(), author=cast(Author, book_updated.author).name
     )
 
 

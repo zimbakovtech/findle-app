@@ -1,24 +1,24 @@
 from collections.abc import AsyncGenerator, Generator
-from typing import Literal
+from datetime import datetime, timezone
+from typing import Any, Literal
 
 import factory
 import factory.fuzzy
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
-from testcontainers.postgres import PostgresContainer
+from motor.motor_asyncio import AsyncIOMotorClient
+from testcontainers.mongodb import MongoDbContainer
 
 from src.api.dependencies import get_session
 from src.app import app
+from src.core.database import Database, ensure_indexes, get_next_sequence
 from src.core.security import get_password_hash
 from src.core.settings import settings
-from src.models import Author, Base, Book, User
+from src.models import Author, Book, User
 from src.schemas.token import Token
 from src.schemas.users import UserResponse
+
+TEST_DB_NAME = 'findle_test_db'
 
 
 class UserFactory(factory.Factory):  # type: ignore[misc]
@@ -52,17 +52,66 @@ class MockedUser(UserResponse):
     clean_password: str
 
 
+# --- Persistence helpers: insert factory objects straight into MongoDB ---
+
+
+async def insert_user(db: Database, user: User) -> User:
+    user.id = await get_next_sequence(db, 'users')
+    if user.created_at is None:
+        user.created_at = datetime.now(timezone.utc)
+    doc = user.to_dict()
+    doc['_id'] = doc.pop('id')
+    await db.users.insert_one(doc)
+    return user
+
+
+async def insert_users(db: Database, users: list[User]) -> list[User]:
+    for user in users:
+        await insert_user(db, user)
+    return users
+
+
+async def insert_author(db: Database, author: Author) -> Author:
+    author.id = await get_next_sequence(db, 'authors')
+    await db.authors.insert_one({'_id': author.id, 'name': author.name})
+    return author
+
+
+async def insert_authors(db: Database, authors: list[Author]) -> list[Author]:
+    for author in authors:
+        await insert_author(db, author)
+    return authors
+
+
+async def insert_book(db: Database, book: Book) -> Book:
+    book.id = await get_next_sequence(db, 'books')
+    doc = book.to_dict()
+    doc['_id'] = doc.pop('id')
+    await db.books.insert_one(doc)
+    return book
+
+
+async def insert_books(db: Database, books: list[Book]) -> list[Book]:
+    for book in books:
+        await insert_book(db, book)
+    return books
+
+
+def _to_mocked_user(user: User, clean_password: str) -> MockedUser:
+    return MockedUser(**vars(user), clean_password=clean_password)
+
+
 @pytest.fixture(scope='session')
 def anyio_backend() -> str:
     return 'asyncio'
 
 
 @pytest.fixture(scope='session')
-def postgres_container(
+def mongo_container(
     anyio_backend: Literal['asyncio'],
-) -> Generator[PostgresContainer, None, None]:
-    with PostgresContainer('postgres:16', driver='asyncpg') as postgres:
-        yield postgres
+) -> Generator[MongoDbContainer, None, None]:
+    with MongoDbContainer('mongo:7') as mongo:
+        yield mongo
 
 
 BASE_URL = 'http://test'
@@ -70,28 +119,23 @@ BASE_URL = 'http://test'
 
 @pytest.fixture
 async def async_session(
-    postgres_container: PostgresContainer,
-) -> AsyncGenerator[AsyncSession, None]:
-    async_db_url = postgres_container.get_connection_url()
-    async_engine = create_async_engine(async_db_url, pool_pre_ping=True)
-
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
-
-    async_session = async_sessionmaker(
-        bind=async_engine,
-        expire_on_commit=False,
-        class_=AsyncSession,
+    mongo_container: MongoDbContainer,
+) -> AsyncGenerator[Database, None]:
+    client: AsyncIOMotorClient[dict[str, Any]] = AsyncIOMotorClient(
+        mongo_container.get_connection_url()
     )
+    await client.drop_database(TEST_DB_NAME)
+    db = client[TEST_DB_NAME]
+    await ensure_indexes(db)
 
-    async with async_session() as as_session:
-        yield as_session
+    yield db
+
+    client.close()
 
 
 @pytest.fixture
 async def async_client(
-    async_session: AsyncSession,
+    async_session: Database,
 ) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides[get_session] = lambda: async_session
     _transport = ASGITransport(app=app)
@@ -132,7 +176,7 @@ async def user_token(async_client: AsyncClient, user: MockedUser) -> str:
 
 
 @pytest.fixture
-async def superuser(async_session: AsyncSession) -> MockedUser:
+async def superuser(async_session: Database) -> MockedUser:
     pwd = settings.FIRST_SUPERUSER_PASSWORD
 
     superuser = User(
@@ -142,59 +186,44 @@ async def superuser(async_session: AsyncSession) -> MockedUser:
         is_superuser=True,
     )
 
-    async with async_session.begin():
-        async_session.add(superuser)
+    await insert_user(async_session, superuser)
 
-    superuser_attrs = superuser.__dict__
-    superuser_attrs['clean_password'] = settings.FIRST_SUPERUSER_PASSWORD
-    superuser_attrs['password'] = superuser.password_hash
-    mocked_superuser = MockedUser(**superuser_attrs)
-
-    return mocked_superuser
+    return _to_mocked_user(superuser, pwd)
 
 
 @pytest.fixture
-async def user(async_session: AsyncSession) -> MockedUser:
+async def user(async_session: Database) -> MockedUser:
     pwd = 'testest'
 
     user = UserFactory(password_hash=get_password_hash(pwd))
 
-    async with async_session.begin():
-        async_session.add(user)
+    await insert_user(async_session, user)
 
-    user_attrs = user.__dict__
-    user_attrs['clean_password'] = pwd
-    user_attrs['password'] = user.password_hash
-    mocked_user = MockedUser(**user_attrs)
-
-    return mocked_user
+    return _to_mocked_user(user, pwd)
 
 
 @pytest.fixture
-async def other_user(async_session: AsyncSession) -> User:
+async def other_user(async_session: Database) -> User:
     user = UserFactory()
 
-    async with async_session.begin():
-        async_session.add(user)
+    await insert_user(async_session, user)
 
     return user
 
 
 @pytest.fixture
-async def author(async_session: AsyncSession) -> Author:
+async def author(async_session: Database) -> Author:
     author = AuthorFactory()
 
-    async with async_session.begin():
-        async_session.add(author)
+    await insert_author(async_session, author)
 
     return author
 
 
 @pytest.fixture
-async def book(async_session: AsyncSession, author: Author) -> Book:
+async def book(async_session: Database, author: Author) -> Book:
     book = BookFactory()
 
-    async with async_session.begin():
-        async_session.add(book)
+    await insert_book(async_session, book)
 
     return book

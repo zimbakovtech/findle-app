@@ -18,12 +18,9 @@ source "$ENV_FILE"
 
 kubectl apply -f "$SCRIPT_DIR/namespace.yaml"
 
-kubectl create secret generic postgres-secret \
+kubectl create secret generic mongodb-secret \
   --namespace findle \
-  --from-literal=POSTGRES_USER="$POSTGRES_USER" \
-  --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-  --from-literal=POSTGRES_DB="$POSTGRES_DB" \
-  --from-literal=DATABASE_URL="$DATABASE_URL" \
+  --from-literal=MONGODB_URL="$MONGODB_URL" \
   --save-config \
   --dry-run=client -o yaml | kubectl apply -f -
 

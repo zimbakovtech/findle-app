@@ -1,10 +1,13 @@
 from http import HTTPStatus
 
+import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.database import Database
 from src.models import Author
-from tests.conftest import AuthorFactory
+from tests.conftest import AuthorFactory, insert_authors
+
+pytestmark = pytest.mark.anyio
 
 
 async def test_add_author(async_client: AsyncClient, user_token: str) -> None:
@@ -91,12 +94,11 @@ async def test_delete_author_not_authenticated(
 
 async def test_delete_authors_in_batch(
     async_client: AsyncClient,
-    async_session: AsyncSession,
+    async_session: Database,
     user_token: str,
 ) -> None:
     range_list = 20
-    async with async_session.begin():
-        async_session.add_all(AuthorFactory.create_batch(range_list))
+    await insert_authors(async_session, AuthorFactory.create_batch(range_list))
 
     response = await async_client.post(
         '/authors/delete/batch',
@@ -118,12 +120,11 @@ async def test_delete_authors_in_batch(
 
 async def test_delete_authors_in_batch_ids_not_found(
     async_client: AsyncClient,
-    async_session: AsyncSession,
+    async_session: Database,
     user_token: str,
 ) -> None:
     range_list = 20
-    async with async_session.begin():
-        async_session.add_all(AuthorFactory.create_batch(range_list))
+    await insert_authors(async_session, AuthorFactory.create_batch(range_list))
 
     response = await async_client.post(
         '/authors/delete/batch',
@@ -207,13 +208,12 @@ async def test_get_author_by_id_not_found(
 
 
 async def test_list_authors_filter_name_should_return_5_authors(
-    async_client: AsyncClient, async_session: AsyncSession
+    async_client: AsyncClient, async_session: Database
 ) -> None:
     expected_authors = 5
     expected_results = 5
     authors_to_add = AuthorFactory.create_batch(5)
-    async with async_session.begin():
-        async_session.add_all(authors_to_add)
+    await insert_authors(async_session, authors_to_add)
 
     response = await async_client.get('/authors?name=author')
 
@@ -222,11 +222,10 @@ async def test_list_authors_filter_name_should_return_5_authors(
 
 
 async def test_list_authors_filter_name_should_return_empty(
-    async_client: AsyncClient, async_session: AsyncSession
+    async_client: AsyncClient, async_session: Database
 ) -> None:
     expected_results = 0
-    async with async_session.begin():
-        async_session.add_all(AuthorFactory.create_batch(5))
+    await insert_authors(async_session, AuthorFactory.create_batch(5))
 
     response = await async_client.get('/authors?name=different name')
 
@@ -235,13 +234,12 @@ async def test_list_authors_filter_name_should_return_empty(
 
 
 async def test_list_authors_filter_name_empty_return_all_authors(
-    async_client: AsyncClient, async_session: AsyncSession
+    async_client: AsyncClient, async_session: Database
 ) -> None:
     expected_authors = 10
     expected_results = 10
 
-    async with async_session.begin():
-        async_session.add_all(AuthorFactory.create_batch(10))
+    await insert_authors(async_session, AuthorFactory.create_batch(10))
 
     response = await async_client.get('/authors')
 
@@ -250,13 +248,12 @@ async def test_list_authors_filter_name_empty_return_all_authors(
 
 
 async def test_list_authors_pagination_no_default_limit_applied(
-    async_client: AsyncClient, async_session: AsyncSession
+    async_client: AsyncClient, async_session: Database
 ) -> None:
     expected_authors = 25
     expected_results = 25
 
-    async with async_session.begin():
-        async_session.add_all(AuthorFactory.create_batch(25))
+    await insert_authors(async_session, AuthorFactory.create_batch(25))
 
     response = await async_client.get('/authors?name=author')
 
@@ -265,17 +262,16 @@ async def test_list_authors_pagination_no_default_limit_applied(
 
 
 async def test_list_authors_pagination_with_name_filter_return_10_authors(
-    async_client: AsyncClient, async_session: AsyncSession
+    async_client: AsyncClient, async_session: Database
 ) -> None:
     expected_authors = 10
     expected_results = 20
 
-    async with async_session.begin():
-        async_session.add_all(AuthorFactory.create_batch(20))
-        author_different_name = AuthorFactory.create_batch(20, name='other')
-        for n, book in enumerate(author_different_name):
-            book.name = f'other_{n}'
-        async_session.add_all(author_different_name)
+    await insert_authors(async_session, AuthorFactory.create_batch(20))
+    author_different_name = AuthorFactory.create_batch(20, name='other')
+    for n, different in enumerate(author_different_name):
+        different.name = f'other_{n}'
+    await insert_authors(async_session, author_different_name)
 
     response = await async_client.get(
         '/authors?name=author&limit=10&offset=10'

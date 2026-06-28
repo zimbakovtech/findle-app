@@ -4,22 +4,20 @@ from typing import Annotated, AsyncGenerator
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jwt import ExpiredSignatureError, PyJWTError, decode
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.database import AsyncSessionLocal
+from src.core.database import Database, db
 from src.core.settings import settings
 from src.models import User
+from src.services import user_service
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/token')
 
 
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    async with AsyncSessionLocal() as session:  # pragma: no cover
-        yield session
+async def get_session() -> AsyncGenerator[Database, None]:
+    yield db  # pragma: no cover
 
 
-SessionDep = Annotated[AsyncSession, Depends(get_session)]
+SessionDep = Annotated[Database, Depends(get_session)]
 TokenDep = Annotated[str, Depends(oauth2_scheme)]
 
 
@@ -42,7 +40,7 @@ async def get_current_user(session: SessionDep, token: TokenDep) -> User:
     except PyJWTError:
         raise credentials_exception
 
-    user_db = await session.scalar(select(User).where(User.email == email))
+    user_db = await user_service.get_user(session=session, user_email=email)
 
     if not user_db:
         raise credentials_exception

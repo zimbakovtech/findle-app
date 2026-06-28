@@ -1,0 +1,59 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongodb-init-replicaset
+  namespace: findle
+  labels:
+    app: mongodb
+    app.kubernetes.io/part-of: findle
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        app: mongodb-init
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mongodb-init
+          image: mongo:7
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              echo "Waiting for mongodb-0 to accept connections..."
+              until mongosh --host mongodb-0.mongodb.findle.svc.cluster.local:27017 \
+                    --quiet --eval "db.adminCommand('ping').ok" >/dev/null 2>&1; do
+                echo "  ...not ready yet, retrying in 5s"
+                sleep 5
+              done
+
+              echo "Initiating replica set rs0 (idempotent)..."
+              mongosh --host mongodb-0.mongodb.findle.svc.cluster.local:27017 --quiet <<'EOF'
+              try {
+                rs.status();
+                print("Replica set already initialised.");
+              } catch (e) {
+                rs.initiate({
+                  _id: "rs0",
+                  members: [
+                    { _id: 0, host: "mongodb-0.mongodb.findle.svc.cluster.local:27017" },
+                    { _id: 1, host: "mongodb-1.mongodb.findle.svc.cluster.local:27017" },
+                    { _id: 2, host: "mongodb-2.mongodb.findle.svc.cluster.local:27017" }
+                  ]
+                });
+                print("Replica set initiated.");
+              }
+              EOF
+
+              echo "Waiting for a PRIMARY to be elected..."
+              until mongosh --host mongodb-0.mongodb.findle.svc.cluster.local:27017 \
+                    --quiet --eval "db.hello().isWritablePrimary || db.hello().secondary" \
+                    | grep -q true; do
+                echo "  ...no primary yet, retrying in 5s"
+                sleep 5
+              done
+
+              echo "Replica set rs0 is ready."

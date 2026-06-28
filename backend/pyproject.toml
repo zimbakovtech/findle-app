@@ -7,16 +7,13 @@ packages = [{include = 'src'}]
 
 [tool.poetry.dependencies]
 python = '>=3.11,<3.14'
-alembic = '^1.13.2'
-aiosqlite = '^0.20.0'
-asyncpg = '^0.30.0'
 email-validator = '^2.2.0'
 fastapi = {extras = ['standard'], version = '^0.112.0'}
 python-multipart = '^0.0.9'
 pydantic-settings = '^2.4.0'
 pyjwt = '^2.9.0'
 pwdlib = {extras = ['argon2'], version = '^0.2.0'}
-sqlalchemy = '^2.0.31'
+motor = '^3.6.0'
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"
@@ -40,7 +37,6 @@ omit = ["*/utils/*", "__init__.py"]
 
 [tool.ruff]
 line-length = 79
-extend-exclude = ['migrations']
 
 [tool.ruff.lint]
 preview = true
@@ -55,7 +51,7 @@ strict = true
 show_error_codes = true
 pretty = true
 ignore_missing_imports = true
-exclude = [ ".venv", "migrations"]
+exclude = [ ".venv"]
 
 [tool.taskipy.tasks]
 run = 'fastapi dev src/app.py'

@@ -1,11 +1,11 @@
 import asyncio
 
-from src.core.database import AsyncSessionLocal, create_superuser
+from src.core.database import create_superuser, db, ensure_indexes
 
 
 async def main() -> None:
-    async with AsyncSessionLocal() as session:
-        await create_superuser(session)
+    await ensure_indexes(db)
+    await create_superuser(db)
 
 
 if __name__ == '__main__':

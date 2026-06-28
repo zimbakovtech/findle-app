@@ -6,12 +6,14 @@ import pytest
 from fastapi import HTTPException
 from httpx import AsyncClient
 from jwt import encode
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.dependencies import get_current_user
+from src.core.database import Database
 from src.core.security import create_access_token
 from src.core.settings import settings
 from tests.conftest import MockedUser
+
+pytestmark = pytest.mark.anyio
 
 
 def _expired_token(email: str) -> str:
@@ -129,7 +131,9 @@ async def test_user_not_found_get_current_user(
     assert response.json() == {'detail': 'Could not validate credentials.'}
 
 
-async def test_token_with_empty_email_sub(async_session: AsyncSession) -> None:
+async def test_token_with_empty_email_sub(
+    async_session: Database,
+) -> None:
     token_payload: dict[str, typing.Any] = {}
     token = create_access_token(token_payload)
 

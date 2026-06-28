@@ -1,45 +1,34 @@
-from typing import cast
+import asyncio
 
-import anyio
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from pymongo.errors import DuplicateKeyError
 
-from src.core.database import AsyncSessionLocal
-from src.models import Author, Book
+from src.core.database import Database, db, get_next_sequence
 from src.schemas.authors import AuthorSchema
 from src.schemas.books import BookSchema
 from src.utils import DATA
 
 
 async def _get_or_create_author(
-    session: AsyncSession, schema: AuthorSchema
-) -> Author | None:
-    author = cast(
-        Author | None,
-        await session.scalar(select(Author).where(Author.name == schema.name)),
-    )
-    if author is not None:
-        return author
+    database: Database, schema: AuthorSchema
+) -> int | None:
+    existing = await database.authors.find_one({'name': schema.name})
+    if existing is not None:
+        return int(existing['_id'])
 
-    author = Author(**schema.model_dump())
-    session.add(author)
+    author_id = await get_next_sequence(database, 'authors')
     try:
-        await session.commit()
-        await session.refresh(author)
-        return author
-    except IntegrityError:
-        await session.rollback()
-        return cast(
-            Author | None,
-            await session.scalar(
-                select(Author).where(Author.name == schema.name)
-            ),
-        )
+        await database.authors.insert_one({
+            '_id': author_id,
+            'name': schema.name,
+        })
+        return author_id
+    except DuplicateKeyError:
+        existing = await database.authors.find_one({'name': schema.name})
+        return int(existing['_id']) if existing else None
 
 
 async def _add_book_if_missing(
-    session: AsyncSession,
+    database: Database,
     title: str,
     year: int,
     author_id: int,
@@ -48,33 +37,33 @@ async def _add_book_if_missing(
     book_schema = BookSchema(
         title=title, year=year, author_id=author_id, price=price
     )
-    exists = await session.scalar(
-        select(Book).where(Book.title == book_schema.title)
-    )
-    if exists:
+    if await database.books.find_one({'title': book_schema.title}):
         return
-    session.add(Book(**book_schema.model_dump()))
+    book_id = await get_next_sequence(database, 'books')
     try:
-        await session.commit()
-    except IntegrityError:
-        await session.rollback()
+        await database.books.insert_one({
+            '_id': book_id,
+            'title': book_schema.title,
+            'year': book_schema.year,
+            'author_id': book_schema.author_id,
+            'price': book_schema.price,
+        })
+    except DuplicateKeyError:
+        pass
 
 
 async def populate_authors() -> None:
     try:
-        async with AsyncSessionLocal() as session:
-            for author_name, books in DATA.items():
-                schema = AuthorSchema(name=author_name)
-                author = await _get_or_create_author(session, schema)
-                if author is None:
-                    continue
-                for title, (year, price) in books.items():
-                    await _add_book_if_missing(
-                        session, title, year, author.id, price
-                    )
+        for author_name, books in DATA.items():
+            schema = AuthorSchema(name=author_name)
+            author_id = await _get_or_create_author(db, schema)
+            if author_id is None:
+                continue
+            for title, (year, price) in books.items():
+                await _add_book_if_missing(db, title, year, author_id, price)
     except Exception as e:
         print('It was not possible to populate the database ', e)
 
 
 if __name__ == '__main__':
-    anyio.run(populate_authors)
+    asyncio.run(populate_authors())

@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-poetry run alembic downgrade base
-poetry run alembic upgrade head
+echo "Resetting database (drop + recreate indexes)..."
+PYTHONPATH=/app poetry run python -m src.utils.reset_db
 
 echo "Running create_superuser.py..."
 PYTHONPATH=/app poetry run python -m src.utils.create_superuser

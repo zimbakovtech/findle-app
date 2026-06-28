@@ -1,6 +1,6 @@
 import re
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class AuthorSchema(BaseModel):
@@ -16,6 +16,7 @@ class AuthorSchema(BaseModel):
 class AuthorPublic(BaseModel):
     id: int
     name: str
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AuthorList(BaseModel):

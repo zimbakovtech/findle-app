@@ -8,7 +8,7 @@
 [![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org)
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://mongodb.com)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/features/actions)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat-square&logo=kubernetes&logoColor=white)](https://kubernetes.io)
@@ -46,7 +46,7 @@ The project demonstrates a complete CI/CD workflow: containerized services, auto
 
 | Layer | Technology |
 | :--- | :--- |
-| **Backend** | FastAPI (async), SQLAlchemy 2.0 async, PostgreSQL 16, Alembic, Pydantic v2, PyJWT, Argon2 |
+| **Backend** | FastAPI (async), Motor (async MongoDB driver), MongoDB 7 replica set, Pydantic v2, PyJWT, Argon2 |
 | **Frontend** | React 18, TypeScript, Vite 5, Chakra UI v3, React Hook Form, Zod, Axios |
 | **Infrastructure** | Docker, Docker Compose, Nginx, GitHub Actions, DockerHub, Kubernetes (k3s on Civo) |
 | **Code Quality** | Ruff 0.8.4 (lint + format), mypy strict, pre-commit hooks, pytest-cov 100% |
@@ -75,7 +75,7 @@ Open [http://localhost:3000](http://localhost:3000). Default credentials are in 
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:8000 |
 | API Docs | http://localhost:8000/docs |
-| Postgres | localhost:5432 |
+| MongoDB | localhost:27017 |
 
 ---
 
@@ -89,9 +89,10 @@ findle-app/
 │   └── cd.yaml                   # Tag-triggered: build + push to DockerHub → deploy to k3s
 ├── k8s/
 │   ├── namespace.yaml
-│   ├── postgres-configmap.yaml
-│   ├── postgres-statefulset.yaml
-│   ├── postgres-service.yaml
+│   ├── mongodb-configmap.yaml
+│   ├── mongodb-statefulset.yaml      # 3-pod MongoDB replica set
+│   ├── mongodb-service.yaml          # Headless service for stable pod DNS
+│   ├── mongodb-init-job.yaml         # Initiates the replica set (rs.initiate)
 │   ├── backend-configmap.yaml
 │   ├── backend-deployment.yaml
 │   ├── backend-service.yaml
@@ -108,13 +109,12 @@ findle-app/
 │   ├── pyproject.toml
 │   ├── .env.example
 │   ├── scripts/
-│   │   ├── init_db.sh            # Prod: migrations → seed → uvicorn
+│   │   ├── init_db.sh            # Prod: indexes + superuser → seed → uvicorn
 │   │   └── init_db_dev.sh        # Dev: full DB reset → seed
 │   └── src/
 │       ├── api/                  # FastAPI routers + dependencies
-│       ├── core/                 # Settings, security, DB engine
-│       ├── migrations/           # Alembic versions
-│       ├── models.py
+│       ├── core/                 # Settings, security, Mongo client + helpers
+│       ├── models.py             # Dataclass documents (User, Author, Book)
 │       ├── schemas/
 │       └── services/
 ├── frontend/
@@ -185,7 +185,7 @@ poetry run task format    # ruff fix + ruff format
 
 | Workflow | Trigger | Steps |
 | :--- | :--- | :--- |
-| **Backend CI** | PR → `main` | mypy → ruff lint → pytest (100% coverage) against real PostgreSQL 16 |
+| **Backend CI** | PR → `main` | mypy → ruff lint → pytest (100% coverage) against real MongoDB 7 (testcontainers) |
 | **Frontend CI** | PR → `main` | ESLint → Vite build (TypeScript strict) |
 
 Both workflows use dependency caching and write a summary to the GitHub Actions job page.
@@ -232,11 +232,12 @@ All manifests live in `k8s/`. All resources run in the `findle` namespace on a C
 | File | Resource | Description |
 | :--- | :--- | :--- |
 | `namespace.yaml` | Namespace | `findle` — isolates all resources |
-| `postgres-configmap.yaml` | ConfigMap | Postgres DB name and user (non-sensitive) |
-| `postgres-statefulset.yaml` | StatefulSet | PostgreSQL 16, 1 replica, 1Gi PVC, `pg_isready` probes |
-| `postgres-service.yaml` | Service (ClusterIP) | Internal postgres access on port 5432 |
+| `mongodb-configmap.yaml` | ConfigMap | MongoDB database name + replica set name (non-sensitive) |
+| `mongodb-statefulset.yaml` | StatefulSet | MongoDB 7, **3 replicas** (replica set `rs0`), 1Gi PVC each, `mongosh` ping probes |
+| `mongodb-service.yaml` | Service (Headless) | `clusterIP: None` — stable per-pod DNS (`mongodb-0.mongodb…`) |
+| `mongodb-init-job.yaml` | Job | Idempotently runs `rs.initiate()` with all 3 members, waits for PRIMARY |
 | `backend-configmap.yaml` | ConfigMap | JWT config, superuser username/email, `SEED_DATA`, `ROOT_PATH=/api` |
-| `backend-deployment.yaml` | Deployment | FastAPI, 1 replica, `Recreate` strategy, init container runs migrations |
+| `backend-deployment.yaml` | Deployment | FastAPI, 1 replica, `Recreate` strategy, init container creates indexes + superuser |
 | `backend-service.yaml` | Service (ClusterIP) | Internal backend access on port 8000 |
 | `frontend-configmap.yaml` | ConfigMap | `VITE_API_URL` reference (build-time only) |
 | `frontend-deployment.yaml` | Deployment | Nginx + React SPA, 2 replicas |
@@ -245,7 +246,7 @@ All manifests live in `k8s/`. All resources run in the `findle` namespace on a C
 | `cluster-issuer.yaml` | ClusterIssuer | cert-manager ACME issuer for Let's Encrypt TLS certificates |
 | `secrets.env.example` | Template | Copy to `secrets.env` and fill in real values |
 | `secrets.env` | Local only | **Gitignored.** Contains real passwords + `SECRET_KEY` |
-| `apply-secrets.sh` | Script | Reads `secrets.env` → creates `postgres-secret` + `backend-secret` via `kubectl` |
+| `apply-secrets.sh` | Script | Reads `secrets.env` → creates `mongodb-secret` + `backend-secret` via `kubectl` |
 
 > **Secrets are never stored in YAML in the repo.** They are created from a local gitignored `secrets.env` via a script.
 
@@ -262,14 +263,15 @@ Internet
     │                                            ▼
     │                                     [backend Deployment]
     │                                      1 replica (FastAPI)
-    │                                      init: alembic + superuser
+    │                                      init: indexes + superuser
     │                                            │
     │                                            ▼
-    │                                     [postgres Service :5432]
+    │                                  [mongodb Service :27017 — headless]
     │                                            │
     │                                            ▼
-    │                                     [postgres StatefulSet]
-    │                                      1 replica + 1Gi PVC
+    │                              [mongodb StatefulSet — replica set rs0]
+    │                               mongodb-0 (PRIMARY) + mongodb-1 + mongodb-2
+    │                               3 replicas, 1Gi PVC each
     │
     └─ /* ──────────────────────────────► [frontend Service :3000]
                                                  │
@@ -351,8 +353,11 @@ kubectl get all -n findle
 # Ingress (should show ADDRESS and TLS)
 kubectl get ingress -n findle
 
-# Init container logs (migrations + superuser)
-kubectl logs -n findle deployment/backend -c db-migrate
+# Replica set init job logs (rs.initiate)
+kubectl logs -n findle job/mongodb-init-replicaset
+
+# Init container logs (indexes + superuser)
+kubectl logs -n findle deployment/backend -c db-init
 
 # Backend logs
 kubectl logs -n findle -l app=backend --tail=50
@@ -366,7 +371,7 @@ curl -s https://findle.zimbakov.dev/api/openapi.json | python3 -m json.tool | he
 
 ```bash
 kubectl delete -f k8s/
-kubectl delete secret postgres-secret backend-secret -n findle
+kubectl delete secret mongodb-secret backend-secret -n findle
 kubectl delete namespace findle
 # k3d only:
 k3d cluster delete findle
@@ -376,9 +381,10 @@ k3d cluster delete findle
 
 | Decision | Rationale |
 | :--- | :--- |
-| **Init container** for migrations | Runs `alembic upgrade head` + superuser creation before the API starts — prevents race conditions on first deploy |
+| **Init container** for setup | Creates indexes + superuser before the API starts — prevents race conditions on first deploy |
 | **`Recreate` strategy** on backend | Avoids memory spike from two backend pods running simultaneously on a single-node cluster during rolling updates |
-| **StatefulSet** for Postgres | Stable pod identity and persistent storage via PVC, surviving restarts |
+| **StatefulSet** for MongoDB | 3 pods with stable identity/DNS and per-pod PVCs — required for a replica set with predictable member hostnames |
+| **Replica set `rs0`** | 3-member MongoDB replica set gives replication + automatic failover (high availability). A Job runs `rs.initiate()` idempotently |
 | **Two Ingress resources** | `rewrite-target` applies to all rules in an Ingress; backend (`/api` strip) and frontend (no rewrite) must be separate to avoid mangling SPA asset paths |
 | **`ROOT_PATH=/api`** | Tells FastAPI it sits behind `/api`, so generated OpenAPI URLs and Swagger UI fetches use the correct prefix |
 | **`VITE_API_URL=/api`** | Baked into the frontend image at build time as a relative path — API calls go through the same ingress, no hardcoded hostnames |

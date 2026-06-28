@@ -1,61 +1,61 @@
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
-
-from sqlalchemy import ForeignKey, func
-from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from typing import Any, Optional
 
 
-class Base(DeclarativeBase, AsyncAttrs):
-    __abstract__ = True
+@dataclass
+class User:
+    username: str
+    email: str
+    password_hash: str
+    id: Optional[int] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    is_superuser: bool = False
+    is_active: bool = True
+    is_verified: bool = False
+    google_sub: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            field.name: getattr(self, field.name) for field in self.__table__.c
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'password_hash': self.password_hash,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'is_superuser': self.is_superuser,
+            'is_active': self.is_active,
+            'is_verified': self.is_verified,
+            'google_sub': self.google_sub,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at,
         }
 
 
-class User(Base):
-    __tablename__ = 'users'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(unique=True)
-    password_hash: Mapped[str]
-    email: Mapped[str] = mapped_column(unique=True)
-    first_name: Mapped[str] = mapped_column(default=None, nullable=True)
-    last_name: Mapped[str] = mapped_column(default=None, nullable=True)
-    is_superuser: Mapped[bool] = mapped_column(default=False)
-    is_active: Mapped[bool] = mapped_column(default=True)
-    is_verified: Mapped[bool] = mapped_column(default=False)
-    google_sub: Mapped[str] = mapped_column(default=None, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        onupdate=func.now(), nullable=True
-    )
+@dataclass
+class Author:
+    name: str
+    id: Optional[int] = None
 
 
-class Book(Base):
-    __tablename__ = 'books'
+@dataclass
+class Book:
+    title: str
+    year: int
+    author_id: int
+    id: Optional[int] = None
+    price: Optional[float] = None
+    # Populated relationship — never persisted to the document.
+    author: Optional[Author] = None
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    year: Mapped[int]
-    title: Mapped[str] = mapped_column(unique=True)
-    author_id: Mapped[int] = mapped_column(
-        ForeignKey('authors.id', ondelete='CASCADE')
-    )
-    price: Mapped[float | None] = mapped_column(default=None, nullable=True)
-    author: Mapped['Author'] = relationship(
-        back_populates='books',
-    )
-
-
-class Author(Base):
-    __tablename__ = 'authors'
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(unique=True)
-    books: Mapped[list[Book]] = relationship(
-        back_populates='author',
-        cascade='all, delete-orphan',
-        passive_deletes=True,
-    )
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            'id': self.id,
+            'year': self.year,
+            'title': self.title,
+            'author_id': self.author_id,
+            'price': self.price,
+        }

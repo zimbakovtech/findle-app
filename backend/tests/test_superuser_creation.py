@@ -1,11 +1,13 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+import pytest
 
-from src.core.database import create_superuser
+from src.core.database import Database, create_superuser
 from src.core.settings import settings
 from src.services import user_service
 
+pytestmark = pytest.mark.anyio
 
-async def test_create_superuser(async_session: AsyncSession) -> None:
+
+async def test_create_superuser(async_session: Database) -> None:
     await create_superuser(async_session)
 
     superuser = await user_service.get_user(

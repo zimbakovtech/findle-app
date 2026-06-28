@@ -3,12 +3,14 @@ from typing import Callable
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.database import Database
 from src.core.security import verify_password
 from src.models import User
 from src.services import user_service
 from tests.conftest import MockedUser
+
+pytestmark = pytest.mark.anyio
 
 
 async def test_create_user(async_client: AsyncClient) -> None:
@@ -163,7 +165,7 @@ async def test_update_user_info_with_credentials_already_in_db(  # noqa: PLR0917
 
 async def test_update_user_password(
     async_client: AsyncClient,
-    async_session: AsyncSession,
+    async_session: Database,
     user: MockedUser,
     user_token: str,
 ) -> None:

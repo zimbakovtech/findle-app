@@ -2,12 +2,11 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select
 
 from src.api.dependencies import CurrentUser, SessionDep
 from src.core.security import create_access_token, verify_password
-from src.models import User
 from src.schemas.token import Token
+from src.services import user_service
 
 router = APIRouter()
 
@@ -19,10 +18,9 @@ async def access_token(
     """
     Generate an access token for a user.
     """
-    async with session.begin():
-        user = await session.scalar(
-            select(User).where(User.email == form_data.username)
-        )
+    user = await user_service.get_user(
+        session=session, user_email=form_data.username
+    )
 
     if not user:
         raise HTTPException(

@@ -19,21 +19,25 @@ spec:
         app: backend
     spec:
       initContainers:
-        - name: db-migrate
+        - name: db-init
           image: zimbakovtech/findle-backend:latest
           imagePullPolicy: Always
           command: ["sh", "-c"]
           args:
             - |
               cd /app
-              poetry run alembic upgrade head
               PYTHONPATH=/app poetry run python -m src.utils.create_superuser
           env:
-            - name: DATABASE_URL
+            - name: MONGODB_URL
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
-                  key: DATABASE_URL
+                  name: mongodb-secret
+                  key: MONGODB_URL
+            - name: MONGODB_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: mongodb-configmap
+                  key: MONGODB_DB
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
@@ -72,11 +76,16 @@ spec:
             - containerPort: 8000
               name: http
           env:
-            - name: DATABASE_URL
+            - name: MONGODB_URL
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
-                  key: DATABASE_URL
+                  name: mongodb-secret
+                  key: MONGODB_URL
+            - name: MONGODB_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: mongodb-configmap
+                  key: MONGODB_DB
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:

@@ -1,9 +1,7 @@
 #!/bin/bash
 set -e
 
-poetry run alembic upgrade head
-
-echo "Running create_superuser.py..."
+echo "Creating indexes and superuser..."
 PYTHONPATH=/app poetry run python -m src.utils.create_superuser
 
 if [ "${SEED_DATA:-true}" = "true" ]; then

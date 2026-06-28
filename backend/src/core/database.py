@@ -1,64 +1,95 @@
+from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import event, select
-from sqlalchemy.dialects.sqlite.aiosqlite import (
-    AsyncAdapt_aiosqlite_connection,
-)
-from sqlalchemy.engine import Engine
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from src.core.security import get_password_hash
 from src.core.settings import settings
-from src.models import User
+from src.models import Author, Book, User
 
+Database = AsyncIOMotorDatabase[Any]
 
-# To allow cascading delete from parent to child (sqlite)
-# The PRAGMA foreign_keys = ON statement must be emitted on all
-# connections before use
-# https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#foreign-key-support
-# https://docs.sqlalchemy.org/en/20/core/event.html
-# https://docs.sqlalchemy.org/en/20/core/events.html#sqlalchemy.events.PoolEvents.connect
-@event.listens_for(Engine, 'connect', named=True)
-def set_sqlite_pragma(**kw: dict[str, Any]) -> None:  # pragma: no cover
-    dbapi_connection = kw.get('dbapi_connection')
-    if isinstance(dbapi_connection, AsyncAdapt_aiosqlite_connection):
-        cursor = dbapi_connection.cursor()
-        cursor.execute('PRAGMA foreign_keys=ON')
-        cursor.close()
-
-
-engine = create_async_engine(settings.DATABASE_URL, echo=True)
-
-AsyncSessionLocal = async_sessionmaker(
-    expire_on_commit=False,
-    bind=engine,
-    class_=AsyncSession,
+client: AsyncIOMotorClient[dict[str, Any]] = AsyncIOMotorClient(
+    settings.MONGODB_URL
 )
+db: Database = client[settings.MONGODB_DB]
 
 
-async def create_superuser(session: AsyncSession) -> None:
-    async with session.begin():
-        user = await session.scalar(
-            select(User).where(User.email == settings.FIRST_SUPERUSER_EMAIL)
-        )
+async def get_next_sequence(database: Database, name: str) -> int:
+    """Atomically increment and return the next sequential id for a collection.
 
-        if not user:
-            hashed_password = get_password_hash(
+    Emulates SQL-style auto-increment primary keys so document ``_id``
+    values stay as integers, preserving the existing API/JSON contract.
+    """
+    counter = await database.counters.find_one_and_update(
+        {'_id': name},
+        {'$inc': {'seq': 1}},
+        upsert=True,
+        return_document=True,
+    )
+    return int(counter['seq'])
+
+
+async def ensure_indexes(database: Database) -> None:
+    """Recreate the unique constraints / lookup indexes from the SQL schema."""
+    await database.users.create_index('username', unique=True)
+    await database.users.create_index('email', unique=True)
+    await database.authors.create_index('name', unique=True)
+    await database.books.create_index('title', unique=True)
+    await database.books.create_index('author_id')
+
+
+def user_from_doc(doc: dict[str, Any]) -> User:
+    return User(
+        id=doc['_id'],
+        username=doc['username'],
+        email=doc['email'],
+        password_hash=doc['password_hash'],
+        first_name=doc.get('first_name'),
+        last_name=doc.get('last_name'),
+        is_superuser=doc.get('is_superuser', False),
+        is_active=doc.get('is_active', True),
+        is_verified=doc.get('is_verified', False),
+        google_sub=doc.get('google_sub'),
+        created_at=doc.get('created_at'),
+        updated_at=doc.get('updated_at'),
+    )
+
+
+def author_from_doc(doc: dict[str, Any]) -> Author:
+    return Author(id=doc['_id'], name=doc['name'])
+
+
+def book_from_doc(doc: dict[str, Any]) -> Book:
+    return Book(
+        id=doc['_id'],
+        year=doc['year'],
+        title=doc['title'],
+        author_id=doc['author_id'],
+        price=doc.get('price'),
+    )
+
+
+async def create_superuser(database: Database) -> None:
+    existing = await database.users.find_one({
+        'email': settings.FIRST_SUPERUSER_EMAIL
+    })
+
+    if not existing:
+        user_id = await get_next_sequence(database, 'users')
+        await database.users.insert_one({
+            '_id': user_id,
+            'username': settings.FIRST_SUPERUSER_USERNAME,
+            'email': settings.FIRST_SUPERUSER_EMAIL,
+            'password_hash': get_password_hash(
                 settings.FIRST_SUPERUSER_PASSWORD
-            )
-
-            user_db = User(
-                username=settings.FIRST_SUPERUSER_USERNAME,
-                email=settings.FIRST_SUPERUSER_EMAIL,
-                password_hash=hashed_password,
-                is_superuser=True,
-                is_verified=True,
-            )
-
-            session.add(user_db)
-
-        pass
+            ),
+            'first_name': None,
+            'last_name': None,
+            'is_superuser': True,
+            'is_active': True,
+            'is_verified': True,
+            'google_sub': None,
+            'created_at': datetime.now(timezone.utc),
+            'updated_at': None,
+        })

@@ -277,7 +277,7 @@ const HomePage: React.FC = () => {
               <FeatureCard
                 icon={<LuZap size={18} />}
                 title="FastAPI Backend"
-                description="Async FastAPI backend with SQLAlchemy, Alembic migrations, and full CRUD."
+                description="Async FastAPI backend with MongoDB (Motor) and full CRUD."
               />
               <FeatureCard
                 icon={<LuArrowRight size={18} />}

@@ -2,10 +2,12 @@ from http import HTTPStatus
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.database import Database
 from src.models import Author, Book
-from tests.conftest import BookFactory
+from tests.conftest import BookFactory, insert_book, insert_books
+
+pytestmark = pytest.mark.anyio
 
 
 async def test_add_book(
@@ -147,13 +149,12 @@ async def test_delete_book_not_authenticated(
 
 async def test_delete_books_in_batch(
     async_client: AsyncClient,
-    async_session: AsyncSession,
+    async_session: Database,
     user_token: str,
     author: Author,
 ) -> None:
     range_list = 20
-    async with async_session.begin():
-        async_session.add_all(BookFactory.create_batch(range_list))
+    await insert_books(async_session, BookFactory.create_batch(range_list))
 
     response = await async_client.post(
         '/books/delete/batch',
@@ -175,13 +176,12 @@ async def test_delete_books_in_batch(
 
 async def test_delete_books_in_batch_ids_not_found(
     async_client: AsyncClient,
-    async_session: AsyncSession,
+    async_session: Database,
     user_token: str,
     author: Author,
 ) -> None:
     range_list = 20
-    async with async_session.begin():
-        async_session.add_all(BookFactory.create_batch(range_list))
+    await insert_books(async_session, BookFactory.create_batch(range_list))
 
     response = await async_client.post(
         '/books/delete/batch',
@@ -209,15 +209,14 @@ async def test_delete_books_in_batch_not_authenticated(
 
 async def test_patch_book(
     async_client: AsyncClient,
-    async_session: AsyncSession,
+    async_session: Database,
     user_token: str,
     author: Author,
 ) -> None:
     input_year = 2000
     book = BookFactory(year=input_year)
 
-    async with async_session.begin():
-        async_session.add(book)
+    await insert_book(async_session, book)
 
     year_expected = 2024
 
@@ -261,7 +260,9 @@ async def test_patch_book_not_authenticated(
     assert response.json() == {'detail': 'Not authenticated'}
 
 
-async def test_get_book_by_id(async_client: AsyncClient, book: Book) -> None:
+async def test_get_book_by_id(
+    async_client: AsyncClient, book: Book, author: Author
+) -> None:
     response = await async_client.get(f'/books/{book.id}')
 
     assert response.status_code == HTTPStatus.OK
@@ -270,7 +271,7 @@ async def test_get_book_by_id(async_client: AsyncClient, book: Book) -> None:
         'year': book.year,
         'title': book.title,
         'price': None,
-        'author': book.author.name,
+        'author': author.name,
     }
 
 
@@ -292,16 +293,17 @@ async def test_list_books_empty(async_client: AsyncClient) -> None:
 
 
 async def test_list_books_filter_title_should_return_5_books(
-    async_client: AsyncClient, async_session: AsyncSession, author: Author
+    async_client: AsyncClient,
+    async_session: Database,
+    author: Author,
 ) -> None:
     expected_books = 5
     expected_results = 5
-    async with async_session.begin():
-        async_session.add_all(BookFactory.create_batch(5))
-        books_with_title = BookFactory.create_batch(5, title='title')
-        for n, book in enumerate(books_with_title):
-            book.title = f'title_{n}'
-        async_session.add_all(books_with_title)
+    await insert_books(async_session, BookFactory.create_batch(5))
+    books_with_title = BookFactory.create_batch(5, title='title')
+    for n, book in enumerate(books_with_title):
+        book.title = f'title_{n}'
+    await insert_books(async_session, books_with_title)
 
     response = await async_client.get('/books?title=title')
 
@@ -310,11 +312,12 @@ async def test_list_books_filter_title_should_return_5_books(
 
 
 async def test_list_books_filter_title_should_return_empty(
-    async_client: AsyncClient, async_session: AsyncSession, author: Author
+    async_client: AsyncClient,
+    async_session: Database,
+    author: Author,
 ) -> None:
     expected_results = 0
-    async with async_session.begin():
-        async_session.add_all(BookFactory.create_batch(5))
+    await insert_books(async_session, BookFactory.create_batch(5))
 
     response = await async_client.get('/books?title=title')
 
@@ -323,13 +326,14 @@ async def test_list_books_filter_title_should_return_empty(
 
 
 async def test_list_books_filter_year_should_return_5_books(
-    async_client: AsyncClient, async_session: AsyncSession, author: Author
+    async_client: AsyncClient,
+    async_session: Database,
+    author: Author,
 ) -> None:
     expected_books = 5
     expected_results = 5
-    async with async_session.begin():
-        async_session.add_all(BookFactory.create_batch(5, year=2000))
-        async_session.add_all(BookFactory.create_batch(5, year=2024))
+    await insert_books(async_session, BookFactory.create_batch(5, year=2000))
+    await insert_books(async_session, BookFactory.create_batch(5, year=2024))
 
     response = await async_client.get('/books?year=2000')
 
@@ -338,11 +342,12 @@ async def test_list_books_filter_year_should_return_5_books(
 
 
 async def test_list_books_filter_year_should_return_empty(
-    async_client: AsyncClient, async_session: AsyncSession, author: Author
+    async_client: AsyncClient,
+    async_session: Database,
+    author: Author,
 ) -> None:
     expected_results = 0
-    async with async_session.begin():
-        async_session.add_all(BookFactory.create_batch(5, year=2000))
+    await insert_books(async_session, BookFactory.create_batch(5, year=2000))
 
     response = await async_client.get('/books?year=2024')
 
@@ -351,15 +356,16 @@ async def test_list_books_filter_year_should_return_empty(
 
 
 async def test_list_books_filter_combined_should_return_5_books(
-    async_client: AsyncClient, async_session: AsyncSession, author: Author
+    async_client: AsyncClient,
+    async_session: Database,
+    author: Author,
 ) -> None:
     expected_books = 5
     expected_results = 5
     books = BookFactory.create_batch(7, year=2000)
     books[-1].title = 'title'
     books[0].year = 2024
-    async with async_session.begin():
-        async_session.add_all(books)
+    await insert_books(async_session, books)
 
     response = await async_client.get('/books?year=2000&title=oo')
 
@@ -372,15 +378,14 @@ async def test_list_books_filter_combined_should_return_5_books(
 )
 async def test_list_books_pagination_with_filter(
     async_client: AsyncClient,
-    async_session: AsyncSession,
+    async_session: Database,
     author: Author,
     limit: int,
     offset: int,
 ) -> None:
     expected_books = limit
     expected_results = 25
-    async with async_session.begin():
-        async_session.add_all(BookFactory.create_batch(25, year=2000))
+    await insert_books(async_session, BookFactory.create_batch(25, year=2000))
 
     response = await async_client.get(
         f'/books?year=2000&limit={limit}&offset={offset}'

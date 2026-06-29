@@ -1,6 +1,7 @@
 import type { ApiResponseDto, ApiError } from "@/dto/ApiResponseDto";
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import qs from "qs";
+import { useCallback, useMemo } from "react";
 
 const baseURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -48,7 +49,7 @@ function wrapResponse<T>(response: AxiosResponse<T>): ApiResponseDto<T> {
 }
 
 const useRootApiService = () => {
-  async function Get<T>(path: string, params?: object): Promise<ApiResponseDto<T>> {
+  const Get = useCallback(async <T>(path: string, params?: object): Promise<ApiResponseDto<T>> => {
     try {
       const response = await axiosInstance.get<T>(path, {
         params,
@@ -58,9 +59,9 @@ const useRootApiService = () => {
     } catch (error) {
       return handleAxiosError<T>(error);
     }
-  }
+  }, []);
 
-  async function Post<T, TBody>(path: string, body: TBody, authorization?: string): Promise<ApiResponseDto<T>> {
+  const Post = useCallback(async <T, TBody>(path: string, body: TBody, authorization?: string): Promise<ApiResponseDto<T>> => {
     try {
       const response = await axiosInstance.post<T>(path, body, {
         headers: authorization ? { Authorization: authorization } : undefined,
@@ -69,45 +70,48 @@ const useRootApiService = () => {
     } catch (error) {
       return handleAxiosError<T>(error);
     }
-  }
+  }, []);
 
-  async function PostWithoutRefreshToken<T, TBody>(path: string, body: TBody): Promise<ApiResponseDto<T>> {
+  const PostWithoutRefreshToken = useCallback(async <T, TBody>(path: string, body: TBody): Promise<ApiResponseDto<T>> => {
     try {
       const response = await axiosInstance.post<T>(path, body);
       return wrapResponse(response);
     } catch (error) {
       return handleAxiosError<T>(error);
     }
-  }
+  }, []);
 
-  async function Put<T, TBody>(path: string, body: TBody): Promise<ApiResponseDto<T>> {
+  const Put = useCallback(async <T, TBody>(path: string, body: TBody): Promise<ApiResponseDto<T>> => {
     try {
       const response = await axiosInstance.put<T>(path, body);
       return wrapResponse(response);
     } catch (error) {
       return handleAxiosError<T>(error);
     }
-  }
+  }, []);
 
-  async function Patch<T, TBody>(path: string, body: TBody): Promise<ApiResponseDto<T>> {
+  const Patch = useCallback(async <T, TBody>(path: string, body: TBody): Promise<ApiResponseDto<T>> => {
     try {
       const response = await axiosInstance.patch<T>(path, body);
       return wrapResponse(response);
     } catch (error) {
       return handleAxiosError<T>(error);
     }
-  }
+  }, []);
 
-  async function Delete<T, TBody>(path: string, body?: TBody): Promise<ApiResponseDto<T>> {
+  const Delete = useCallback(async <T, TBody>(path: string, body?: TBody): Promise<ApiResponseDto<T>> => {
     try {
       const response = await axiosInstance.delete<T>(path, { data: body });
       return wrapResponse(response);
     } catch (error) {
       return handleAxiosError<T>(error);
     }
-  }
+  }, []);
 
-  return { Get, Post, PostWithoutRefreshToken, Put, Patch, Delete };
+  return useMemo(
+    () => ({ Get, Post, PostWithoutRefreshToken, Put, Patch, Delete }),
+    [Get, Post, PostWithoutRefreshToken, Put, Patch, Delete]
+  );
 };
 
 export default useRootApiService;

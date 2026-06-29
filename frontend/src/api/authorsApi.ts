@@ -7,19 +7,20 @@ import {
   PostBodyCreateAuthorDto,
   DeleteAuthorsBatchDto,
 } from "@/dto/AuthorsDto";
+import { useCallback, useMemo } from "react";
 
 const useAuthorsService = () => {
   const { Get, Post } = useRootApiService();
 
-  const getAuthors = async (
+  const getAuthors = useCallback(async (
     params?: GetAuthorsParams
   ): Promise<ApiResponseDto<GetAuthorsResponseDto>> => {
     const response = await Get<GetAuthorsResponseDto>("/authors", params);
 
     return response;
-  };
+  }, [Get]);
 
-  const createAuthor = async (
+  const createAuthor = useCallback(async (
     data: PostBodyCreateAuthorDto
   ): Promise<ApiResponseDto<AuthorResponseDto>> => {
     const response = await Post<AuthorResponseDto, PostBodyCreateAuthorDto>(
@@ -28,9 +29,9 @@ const useAuthorsService = () => {
     );
 
     return response;
-  };
+  }, [Post]);
 
-  const deleteAuthorsBatch = async (
+  const deleteAuthorsBatch = useCallback(async (
     data: DeleteAuthorsBatchDto
   ): Promise<ApiResponseDto<MessageDto>> => {
     const response = await Post<MessageDto, DeleteAuthorsBatchDto>(
@@ -39,9 +40,12 @@ const useAuthorsService = () => {
     );
 
     return response;
-  };
+  }, [Post]);
 
-  return { getAuthors, createAuthor, deleteAuthorsBatch };
+  return useMemo(
+    () => ({ getAuthors, createAuthor, deleteAuthorsBatch }),
+    [getAuthors, createAuthor, deleteAuthorsBatch]
+  );
 };
 
 export default useAuthorsService;

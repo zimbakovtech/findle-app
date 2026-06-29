@@ -2,11 +2,12 @@ import useRootApiService from "@/api/rootApi";
 import {ApiResponseDto} from "@/dto/ApiResponseDto";
 import { TokenResponseDto } from "@/dto/AuthDto";
 import { SignInDto } from "@/dto/UsersDto";
+import { useCallback, useMemo } from "react";
 
 const useAuthService = () => {
   const { PostWithoutRefreshToken } = useRootApiService();
 
-  const signInUser = async (
+  const signInUser = useCallback(async (
     signInDto: SignInDto
   ): Promise<ApiResponseDto<TokenResponseDto>> => {
     const formData = new URLSearchParams();
@@ -19,9 +20,9 @@ const useAuthService = () => {
     >("/auth/token", formData);
 
     return response;
-  };
+  }, [PostWithoutRefreshToken]);
 
-  return { signInUser };
+  return useMemo(() => ({ signInUser }), [signInUser]);
 };
 
 export default useAuthService;

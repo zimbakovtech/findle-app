@@ -5,11 +5,12 @@ import {
   SignUpRequestDto,
   SignUpResponseDto,
 } from "@/dto/UsersDto";
+import { useCallback, useMemo } from "react";
 
 const useUsersService = () => {
   const { PostWithoutRefreshToken, Get } = useRootApiService();
 
-  const createUser = async (
+  const createUser = useCallback(async (
     SignUpRequestDto: SignUpRequestDto
   ): Promise<ApiResponseDto<SignUpResponseDto>> => {
     const response = await PostWithoutRefreshToken<
@@ -18,17 +19,17 @@ const useUsersService = () => {
     >("/users/signup", SignUpRequestDto);
 
     return response;
-  };
+  }, [PostWithoutRefreshToken]);
 
-  const getCurrentUser = async (): Promise<
+  const getCurrentUser = useCallback(async (): Promise<
     ApiResponseDto<GetCurrentUserDto>
   > => {
     const response = await Get<GetCurrentUserDto>("/users/me");
 
     return response;
-  };
+  }, [Get]);
 
-  return { createUser, getCurrentUser };
+  return useMemo(() => ({ createUser, getCurrentUser }), [createUser, getCurrentUser]);
 };
 
 export default useUsersService;
